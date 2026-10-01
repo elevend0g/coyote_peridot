@@ -1,0 +1,3329 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {
+            background-color: #1e1e1e;        /* Dark grey background */
+            color: #e0b0ff;                   /* Light purple text */
+            font-family: Consolas, 'Courier New', monospace;
+            line-height: 1.6;
+            margin: 40px auto;
+            max-width: 800px;
+            padding: 20px;
+
+        }
+        h1, h2, h3, h4, h5, h6 {
+            color: #ffd700;                   /* Gold headers */
+            font-family: Consolas, 'Courier New', monospace;
+        }
+        a {
+            color: #e0b0ff;                   /* Light purple links */
+            text-decoration: none
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        code {
+            background-color: #2d2d2d;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: Consolas, 'Courier New', monospace;
+        }
+        pre {
+            background-color: #2d2d2d;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: Consolas, 'Courier New', monospace;
+        }
+        /* Additional styling for nested lists in table of contents */
+        ol ol, ol ul, ul ol, ul ul {
+            margin-top: 0.5em;
+            margin-bottom: 0.5em;
+            margin-left: 1.5em;
+        }
+        li {
+            margin-bottom: 0.25em;
+        }
+        /* Table styling for proper formatting */
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 1.5em 0;
+            background-color: #2d2d2d;
+            font-family: Consolas, 'Courier New', monospace;
+        }
+        th, td {
+            border: 1px solid #444;
+            padding: 8px 12px;
+            text-align: left;
+            color: #e0b0ff;
+        }
+        th {
+            background-color: #3a3a3a;
+            color: #ffd700;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #363636;
+        }
+        tr:hover {
+            background-color: #404040;
+        }
+        /* Blockquote styling */
+        blockquote {
+            border-left: 4px solid #ffd700;
+            margin: 1.5em 0;
+            padding: 0.5em 1em;
+            background-color: #2d2d2d;
+            color: #e0b0ff;
+            font-style: italic;
+        }
+        /* Image styling */
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+            margin: 1em 0;
+        }
+        /* Smooth scrolling for anchor links */
+        html {
+            scroll-behavior: smooth;
+        }
+        /* Sticky TOC styling */
+        .sticky-toc {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            max-width: 250px;
+            max-height: 80vh;
+            overflow-y: auto;
+            background-color: #2d2d2d;
+            border: 1px solid #444;
+            border-radius: 5px;
+            padding: 12px;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            font-size: 0.9em;
+        }
+        .sticky-toc h3 {
+            color: #ffd700;
+            margin-top: 0;
+            margin-bottom: 8px;
+            font-size: 1em;
+        }
+        .sticky-toc ol,
+        .sticky-toc ul {
+            padding-left: 1.5em;
+            margin: 0;
+        }
+        .sticky-toc li {
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+        .sticky-toc a {
+            color: #e0b0ff;
+            text-decoration: none;
+        }
+        .sticky-toc a:hover {
+            text-decoration: underline;
+            color: #ffd700;
+        }
+        /* Active TOC item highlighting */
+        .toc-active {
+            color: #ffd700 !important;
+            font-weight: bold;
+        }
+        /* TOC toggle button (only shown on small screens) */
+        .toc-toggle {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: #2d2d2d;
+            color: #ffd700;
+            border: 1px solid #444;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            z-index: 1001;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        /* Medium screens: shift content right so the sticky TOC doesn't cover it */
+        @media (min-width: 769px) and (max-width: 1419px) {
+            body.has-sticky-toc {
+                margin-left: 290px;
+                margin-right: 20px;
+            }
+        }
+        /* Small screens: hide the TOC behind the toggle button */
+        @media (max-width: 768px) {
+            .sticky-toc {
+                display: none;
+            }
+            .sticky-toc.open {
+                display: block;
+            }
+            .toc-toggle {
+                display: block;
+            }
+        }
+    </style>
+    <script>
+        // Make TOC sticky and highlight active section
+        document.addEventListener('DOMContentLoaded', function() {
+            // Find the TOC heading: any h1-h3 reading "Table of Contents" or "Contents" (any case)
+            const tocPattern = /^(table of )?contents$/i;
+            let tocHeading = null;
+            for (const heading of document.querySelectorAll('h1, h2, h3')) {
+                if (tocPattern.test(heading.textContent.trim())) {
+                    tocHeading = heading;
+                    break;
+                }
+            }
+            if (!tocHeading) return;
+
+            // Find the TOC list (numbered or bulleted) after the heading,
+            // skipping other elements (like <p> tags) but stopping at the next heading
+            let tocList = tocHeading.nextElementSibling;
+            while (tocList && tocList.tagName !== 'OL' && tocList.tagName !== 'UL') {
+                if (/^H[1-6]$/.test(tocList.tagName)) return;
+                tocList = tocList.nextElementSibling;
+            }
+            if (!tocList) return;
+
+            // Make every TOC item a working link. Items whose link doesn't match a
+            // heading ID, or plain-text items with no link, are matched to a heading
+            // by their text. Sub-items are only matched within their parent's section,
+            // so repeated names (like "Overview") go to the right place.
+            const allHeadings = Array.from(document.querySelectorAll('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]'));
+            const normalize = text => text.trim().toLowerCase().split(/\s+/).join(' ');
+
+            function linkTocItems(list, searchStart) {
+                for (const item of list.children) {
+                    if (item.tagName !== 'LI') continue;
+
+                    // The item's own label is everything except its nested lists
+                    const labelNodes = Array.from(item.childNodes)
+                        .filter(node => node.nodeName !== 'UL' && node.nodeName !== 'OL');
+                    const label = labelNodes.map(node => node.textContent).join('');
+                    const link = item.querySelector(':scope > a, :scope > p > a');
+
+                    // Find the target heading: by link first, then by text
+                    let targetIndex = -1;
+                    if (link) {
+                        targetIndex = allHeadings.findIndex(h => '#' + h.id === link.getAttribute('href'));
+                    }
+                    if (targetIndex === -1) {
+                        targetIndex = allHeadings.findIndex((h, i) =>
+                            i >= searchStart && normalize(h.textContent) === normalize(label));
+                        if (targetIndex !== -1) {
+                            if (link) {
+                                link.setAttribute('href', '#' + allHeadings[targetIndex].id);
+                            } else {
+                                const newLink = document.createElement('a');
+                                newLink.href = '#' + allHeadings[targetIndex].id;
+                                newLink.textContent = label.trim();
+                                labelNodes.forEach(node => node.remove());
+                                item.insertBefore(newLink, item.firstChild);
+                            }
+                        }
+                    }
+
+                    // Search sub-items within this item's section, and later
+                    // siblings after it
+                    const nextStart = targetIndex !== -1 ? targetIndex + 1 : searchStart;
+                    for (const subList of item.querySelectorAll(':scope > ul, :scope > ol')) {
+                        linkTocItems(subList, nextStart);
+                    }
+                    searchStart = nextStart;
+                }
+            }
+            linkTocItems(tocList, 0);
+
+            // Create sticky TOC container
+            const stickyToc = document.createElement('div');
+            stickyToc.className = 'sticky-toc';
+            const tocTitle = document.createElement('h3');
+            tocTitle.textContent = tocHeading.textContent.trim();
+            stickyToc.appendChild(tocTitle);
+
+            // Clone the TOC list
+            const clonedToc = tocList.cloneNode(true);
+            stickyToc.appendChild(clonedToc);
+            document.body.appendChild(stickyToc);
+            document.body.classList.add('has-sticky-toc');
+
+            // Hide original TOC heading
+            tocHeading.style.display = 'none';
+            tocList.style.display = 'none';
+
+            // Highlight active TOC item on scroll
+            const sections = Array.from(document.querySelectorAll('h2[id], h3[id], h4[id]'))
+                .filter(section => section !== tocHeading);
+            const tocLinks = Array.from(stickyToc.querySelectorAll('a'));
+            
+            function highlightActiveSection() {
+                // Find current section
+                let currentSection = '';
+                const scrollPosition = window.scrollY + 100;
+                
+                for (const section of sections) {
+                    if (section.offsetTop <= scrollPosition) {
+                        currentSection = section.id;
+                    } else {
+                        break;
+                    }
+                }
+                
+                // Update active link
+                tocLinks.forEach(link => {
+                    link.classList.remove('toc-active');
+                    if (link.getAttribute('href') === '#' + currentSection) {
+                        link.classList.add('toc-active');
+                    }
+                });
+            }
+            
+            // Initial highlight
+            highlightActiveSection();
+            
+            // Update on scroll
+            window.addEventListener('scroll', highlightActiveSection);
+            
+            // TOC toggle button (CSS only shows it, and only hides the TOC, on small screens)
+            const tocToggle = document.createElement('button');
+            tocToggle.className = 'toc-toggle';
+            tocToggle.textContent = '📖 TOC';
+            tocToggle.addEventListener('click', function(event) {
+                // Stop this click from reaching the "click outside" handler below
+                event.stopPropagation();
+                stickyToc.classList.toggle('open');
+            });
+            document.body.appendChild(tocToggle);
+
+            // Close TOC when clicking outside it or following one of its links
+            document.addEventListener('click', function(event) {
+                if (!stickyToc.contains(event.target)) {
+                    stickyToc.classList.remove('open');
+                }
+            });
+            tocLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    stickyToc.classList.remove('open');
+                });
+            });
+        });
+    </script>
+</head>
+<body>
+    <h1 id="base10-system-guide">Base10 System Guide</h1>
+<p><em>Setting-Agnostic TTRPG Core Rules</em></p>
+<p><em>Examples drawn from the CS:RPG Content Module</em></p>
+<p><em>An elevendog media llc publication</em></p>
+<hr />
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol>
+<li><a href="#introduction">Introduction</a><ul>
+<li><a href="#the-dice">The Dice</a></li>
+</ul>
+</li>
+<li><a href="#attributes">Attributes</a><ul>
+<li><a href="#the-seven-attributes">The Seven Attributes</a></li>
+</ul>
+</li>
+<li><a href="#level-progression">Level Progression</a><ul>
+<li><a href="#advancement-points">Advancement Points</a></li>
+<li><a href="#power-tiers">Power Tiers</a></li>
+<li><a href="#combat-tiers">Combat Tiers</a></li>
+</ul>
+</li>
+<li><a href="#Professions">Professions</a><ul>
+<li><a href="#profession-features">Profession Features</a></li>
+<li><a href="#designing-a-profession">Designing a Profession</a></li>
+</ul>
+</li>
+<li><a href="#skills">Skills</a><ul>
+<li><a href="#skill-slots-and-bonuses">Skill Slots and Bonuses</a></li>
+<li><a href="#skill-architecture">Skill Architecture</a></li>
+<li><a href="#skill-tiers">Skill Tiers</a></li>
+<li><a href="#skill-customization">Skill Customization</a></li>
+</ul>
+</li>
+<li><a href="#combat">Combat</a><ul>
+<li><a href="#combat-dice-pools">Combat Dice Pools</a></li>
+<li><a href="#the-standoff">The Standoff</a></li>
+<li><a href="#the-exchange">The Exchange</a></li>
+<li><a href="#reactions">Reactions</a></li>
+<li><a href="#chain-order">Chain Order</a></li>
+<li><a href="#resolving-attacks">Resolving Attacks</a></li>
+<li><a href="#damage">Damage</a></li>
+<li><a href="resolving-combat">Resolving Combat</a></li>
+<li><a href="#movement">Movement</a></li>
+<li><a href="#modifiers">Modifiers</a></li>
+</ul>
+</li>
+<li><a href="#kit">Kit</a><ul>
+<li><a href="#kit-item-power-tiers">Kit Item Power Tiers</a></li>
+<li><a href="#mod-power-tiers">Mod Power Tiers</a></li>
+<li><a href="#mod-slots">Mod Slots</a></li>
+<li><a href="#kit-modifier-types">Kit Modifier Types </a></li>
+<li><a href="#equipping-higher-tier-kit">Equipping Higher-Tier Kit</a></li>
+<li><a href="#armor">Armor</a></li>
+<li><a href="#weapons">Weapons</a></li>
+<li><a href="#carry-capacity">Carry Capacity</a></li>
+</ul>
+</li>
+<li><a href="#appendix">Appendix</a><ul>
+<li><a href="#quick-reference">Quick Reference</a></li>
+<li><a href="#glossary_of_terms">Glossary of Terms</a></li>
+</ul>
+</li>
+</ol>
+<hr />
+<h2 id="introduction">Introduction</h2>
+<p>The Base10 system is a setting-agnostic RPG framework. At its core the system seeks to drive storytelling by providing simple customizable modules. A storyteller can plug in their world into a ready-made mechanical foundation and enjoy their creation from the inside. Built around a ten-level progression structure; Player Characters advance through five Power Tiers. Each divided into two stages, reflecting growth in capability, combat effectiveness, and skill mastery. The Custodian is the keeper of the world and arbiter of the rules. They tell the story, set the stage and play the entities the Players do not. </p>
+<p>Character identity is defined by three systems: <strong>Attributes</strong>, seven fixed traits representing who a character is. <strong>Skills</strong>, learned capabilities representing what a character can do. And <strong>Combat Tier</strong>, the honed fighting prowess a character possesses. The seven Attributes, their names and what they mean never change. Their scores, however, along with Skills and Combat Tiers can grow. Together, these systems form the mechanical foundation for all non-combat and combat actions.</p>
+<p>Combat attempts to break away from the standard turn based method found in many RPG systems. Base10 combat mechanics uses two phases; the <strong>Standoff</strong> phase and the <strong>Exchange</strong> phase. During which players attempt to gain the <strong>Edge</strong> in the Standoff phase to get an advantage in the chain based action/reaction Exchange phase.</p>
+<p><strong>Professions</strong> add depth to characters. Driven by Content Modules, Professions are a structured set of mechanical features that define how a character fights, adapts, and grows beyond the baseline afforded by Attributes, Skills, and Kit. Where Attributes represent who a character <em>is</em> and Skills represent what a character can <em>do</em>, a Profession represents how a character <em>operates</em>. A specific philosophy of capability that persists and deepens across all five Power Tiers.</p>
+<p>The system is designed to be modular: core mechanics are defined here, while setting-specific content (kit, entities, skill definitions, world flavor and lore) is handled in separate content modules or player created content (we hope!).</p>
+<h3 id="the-dice">The Dice</h3>
+<p>Base10 uses <strong>ten sided dice</strong> in almost every instance. For those new to this whole thing, we abbreviate this as <em>d10</em>. Sometime rolling a <em>d100</em> is called for. No, you don't need a 100 sided die. Yes they make them and yes they are pretty cool. If you are legit, then you got one as an add on in the Kick Starter. Usually a d100 is rolled on 2d10 using one as the tens place and the other as the ones place. Just so there aren't any shenanigans the tens place die should be called before the roll. Some d10 have two digits to represent the tens place shown like 00, 10, 20, ect. The <strong>Official Base10 Dice Set</strong> include 9 single digit d10 and 1 double digit d10. So moving forward we are going to assume that one single digit die and one double digit die are being used in 2d10/d100 situations.</p>
+<p>All attack and defense Dice Pools consist of standard single digit sided dice. For all single digit dice 0 is the lowest and 9 is the highest.  Yeah I know, "isn't the 0 the 10?" NO CARL! If you want 0 to be ten then make your own game but in Base10 0 is 0. Skill Rolls and Chaos Rolls call for d100 rolls. Use the standard 2d10 or a real d100 if you fancy like that. The range is 0 it 99. For example, if you roll a 00 and a 5 then the result is a 5. if you roll a 50 and a 5 then thats a 55. If you roll 00 and 0 then thats a, you guessed it, a 0. The highest roll would be a 90 and 9. Get it? Good. Moving on. </p>
+<hr />
+<h2 id="attributes">Attributes</h2>
+<h3 id="the-seven-attributes">The Seven Attributes</h3>
+<p>Every character is defined by seven Attributes. The Attributes themselves, their names, their descriptions, what each one represents are fixed. They are not swapped, removed, or redesigned across settings or campaigns. They represent the fundamental nature of the character and serve as the mechanical foundation for all Skill checks. Attribute scores, however, are not fixed. They begin at character creation and can grow through Advancement Points over the course of play.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;"><strong>Attribute</strong></th>
+<th style="text-align: left;"><strong>Abbreviation</strong></th>
+<th style="text-align: left;"><strong>Description</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Curiosity</td>
+<td style="text-align: left;">Cu</td>
+<td style="text-align: left;">The drive to explore, question, and discover</td>
+</tr>
+<tr>
+<td style="text-align: left;">Empathy</td>
+<td style="text-align: left;">Em</td>
+<td style="text-align: left;">The capacity to understand and connect with others</td>
+</tr>
+<tr>
+<td style="text-align: left;">Focus</td>
+<td style="text-align: left;">Fo</td>
+<td style="text-align: left;">Sustained attention, precision, and mental discipline</td>
+</tr>
+<tr>
+<td style="text-align: left;">Conditioning</td>
+<td style="text-align: left;">Cn</td>
+<td style="text-align: left;">Physical training and readiness; trained capacity to perform</td>
+</tr>
+<tr>
+<td style="text-align: left;">Intuition</td>
+<td style="text-align: left;">In</td>
+<td style="text-align: left;">Instinctive situational awareness; reading what isn't said</td>
+</tr>
+<tr>
+<td style="text-align: left;">Versatility</td>
+<td style="text-align: left;">Ve</td>
+<td style="text-align: left;">Adaptability; drawing on a wide range of experience</td>
+</tr>
+<tr>
+<td style="text-align: left;">Will</td>
+<td style="text-align: left;">Wi</td>
+<td style="text-align: left;">Inner resolve, determination, and mental endurance</td>
+</tr>
+</tbody>
+</table>
+<h4 id="attribute-descriptions">Attribute Descriptions</h4>
+<p><strong>Curiosity</strong> — The drive to explore, learn, and seek out new experiences. Curious characters are natural investigators, quick to notice details, and eager to uncover the mysteries of the universe.</p>
+<p><strong>Empathy</strong> — The ability to understand and share the feelings of others. Empathic characters excel at reading emotions, anticipating reactions, and can use this insight for various purposes, from forming genuine connections to subtle manipulation.</p>
+<p><strong>Focus</strong> — The power to concentrate and maintain attention, even in challenging or distracting environments. High Focus allows for precise actions and deep understanding of complex subjects.</p>
+<p><strong>Conditioning</strong> — The product of sustained physical training. Conditioned characters are stronger, faster, and more physically capable than their peers. Raw power, speed, and agility are all expressions of Conditioning. </p>
+<p><strong>Intuition</strong> — The ability to understand or perceive things instinctively. Intuitive characters are often described as being in tune with the universe, having hunches that turn out to be correct, or sensing things beyond normal perception.</p>
+<p><strong>Versatility</strong> — The ability to adapt quickly to new situations and apply knowledge across different contexts. Characters with high Versatility learn rapidly, easily grasp new concepts, and excel at finding innovative solutions to problems.</p>
+<p><strong>Will</strong> — Mental fortitude and determination. This Attribute represents a character's ability to persevere in the face of adversity, resist mental influences, and maintain focus on long-term goals.</p>
+<h4 id="generating-attribute-scores">Generating Attribute Scores</h4>
+<p>To determine an Attribute Score, roll 2d10 and keep the highest result. Either place the score on the Attribute you want or call it before you roll it. That should be a group decision during character creation. Any available Advancement Points may be added to any Attribute score after character creation, up to a maximum of 9, consistent with all other advancement ceilings in Base10.</p>
+<h4 id="attribute-modifiers">Attribute Modifiers</h4>
+<p>Each Attribute score corresponds to a modifier applied to Skill checks in 1% increments.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;"><strong>Attribute Score</strong></th>
+<th style="text-align: left;"><strong>Modifier</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">9</td>
+<td style="text-align: left;">+4%</td>
+</tr>
+<tr>
+<td style="text-align: left;">8</td>
+<td style="text-align: left;">+3%</td>
+</tr>
+<tr>
+<td style="text-align: left;">7</td>
+<td style="text-align: left;">+2%</td>
+</tr>
+<tr>
+<td style="text-align: left;">6</td>
+<td style="text-align: left;">+1%</td>
+</tr>
+<tr>
+<td style="text-align: left;">5</td>
+<td style="text-align: left;">0%</td>
+</tr>
+<tr>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">0%</td>
+</tr>
+<tr>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">−1%</td>
+</tr>
+<tr>
+<td style="text-align: left;">2</td>
+<td style="text-align: left;">−2%</td>
+</tr>
+<tr>
+<td style="text-align: left;">1</td>
+<td style="text-align: left;">−3%</td>
+</tr>
+<tr>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">−4%</td>
+</tr>
+</tbody>
+</table>
+<p>Because every Skill draws on two paired Attributes, both modifiers are added together and applied to the Skill check. A character with high scores in both paired Attributes will see a meaningful combined bonus; low scores in either, or both, will pull the result down.</p>
+<h4 id="why-attributes-are-fixed-but-not-frozen">Why Attributes Are Fixed But Not Frozen</h4>
+<p>Attributes are not meant to represent what a character can do. That is the role of Skills. Attributes represent who a character is. The seven Attributes, what they are named and what they mean, never change. A character of high Empathy does not become less empathetic as the campaign shifts genre or setting, and no setting can rename Empathy to something else. This consistency ensures character identity remains legible and coherent across all play contexts and all content modules.</p>
+<p>What can change are the scores behind each Attribute. A character who begins play with a Curiosity of 5 may invest Advancement Points over time, pushing that score upward as the character grows into a more driven, inquisitive version of themselves. Attribute scores directly influence Skill performance: a higher score produces a larger modifier, raising the ceiling of what a character can accomplish in that Attribute's associated skill domains. Each Attribute score has a maximum of 9, consistent with all other advancement ceilings in Base10.</p>
+<hr />
+<h2 id="level-progression">Level Progression</h2>
+<p>Every system ever has a system to level up the PCs. Base10 has 10 levels across 5 tiers.  Are you starting to see a theme yet?  Well, judging by the state of the education system, maybe not yet.  Don't worry short my fellow short bussers (not actually. My mom drove me. She was the special ed teacher so it worked out), we are going to make is easy for you. Ok, stay with me; Five tiers 1 through 5. Each tier has two levels starting at level 0 (Power Tier 1) and ending at level 9 (Power Tier 5).  Why start at 0?  Well, 0 is a number too and it never gets to play with the rest of the numbers. So 10 levels: 0 - 9. Simple, right?  At each level you get Attribute Points. At each Tier, a bunch of other shit can happen. Keep reading.   </p>
+<p>Characters progress through ten levels (0–9), organized into five Power Tiers (P1–P5). Each tier has two stages: a base stage (.0) and an advanced stage (.1).</p>
+<p><em>⚠️ [Content Module] — The pace at which a character gains a level is determined by the Content Module.</em></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Tier</th>
+<th style="text-align: left;">Stage</th>
+<th style="text-align: left;">Level</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>P1</strong></td>
+<td style="text-align: left;"><em>P1.0</em></td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">Base Level — starting point</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>P1</strong></td>
+<td style="text-align: left;"><em>P1.1</em></td>
+<td style="text-align: left;">1</td>
+<td style="text-align: left;">First advancement</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>P2</strong></td>
+<td style="text-align: left;"><em>P2.0</em></td>
+<td style="text-align: left;">2</td>
+<td style="text-align: left;">Second tier unlocked</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>P2</strong></td>
+<td style="text-align: left;"><em>P2.1</em></td>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>P3</strong></td>
+<td style="text-align: left;"><em>P3.0</em></td>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">Mid-game capability</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>P3</strong></td>
+<td style="text-align: left;"><em>P3.1</em></td>
+<td style="text-align: left;">5</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>P4</strong></td>
+<td style="text-align: left;"><em>P4.0</em></td>
+<td style="text-align: left;">6</td>
+<td style="text-align: left;">High-tier performance</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>P4</strong></td>
+<td style="text-align: left;"><em>P4.1</em></td>
+<td style="text-align: left;">7</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>P5</strong></td>
+<td style="text-align: left;"><em>P5.0</em></td>
+<td style="text-align: left;">8</td>
+<td style="text-align: left;">Elite capability</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>P5</strong></td>
+<td style="text-align: left;"><em>P5.1</em></td>
+<td style="text-align: left;">9</td>
+<td style="text-align: left;">Maximum level</td>
+</tr>
+</tbody>
+</table>
+<h3 id="advancement-points">Advancement Points</h3>
+<p>Advancement Points can be allocated to Skills and Attributes, up to a maximum of 9 points per individual skill or attribute. Points represent the character's growing proficiency and adaptability over time.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Level</th>
+<th style="text-align: left;">Points Gained</th>
+<th style="text-align: left;">Cumulative Total</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">3</td>
+</tr>
+<tr>
+<td style="text-align: left;">1</td>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">6</td>
+</tr>
+<tr>
+<td style="text-align: left;">2</td>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">9</td>
+</tr>
+<tr>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">12</td>
+</tr>
+<tr>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">16</td>
+</tr>
+<tr>
+<td style="text-align: left;">5</td>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">20</td>
+</tr>
+<tr>
+<td style="text-align: left;">6</td>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">24</td>
+</tr>
+<tr>
+<td style="text-align: left;">7</td>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">28</td>
+</tr>
+<tr>
+<td style="text-align: left;">8</td>
+<td style="text-align: left;">5</td>
+<td style="text-align: left;">33</td>
+</tr>
+<tr>
+<td style="text-align: left;">9</td>
+<td style="text-align: left;">5</td>
+<td style="text-align: left;">38</td>
+</tr>
+</tbody>
+</table>
+<p><em>Total Advancement Points available across all levels: 38 points</em></p>
+<h4 id="progression-design">Progression Design</h4>
+<ul>
+<li><strong>Levels 0–3 (P1–P2):</strong> 3 points per level. Builds the foundational skill and attribute base.</li>
+<li><strong>Levels 4–7 (P2–P4):</strong> 4 points per level. Steady growth through mid-tier play, enabling deeper specialization.</li>
+<li><strong>Levels 8–9 (P5):</strong> 5 points per level. Peak advancement rate, reflecting elite mastery and rapid capability growth.</li>
+</ul>
+<hr />
+<h4 id="example-progression-csrpg"><em>Example Progression (CS:RPG)</em></h4>
+<ul>
+<li>Starting at P1.0 (Level 0): 3 Advancement Points, Tier Bonus: +1</li>
+<li>Advancing to P3.0 (Level 4): 16 total Advancement Points, Tier Bonus +3</li>
+<li>Reaching P5.1 (Level 9): 38 total Advancement Points, Tier Bonus: +5</li>
+</ul>
+<hr />
+<h3 id="power-tiers">Power Tiers</h3>
+<p>Characters in Base10 progress through five <strong>Power Tiers</strong>. P1 through P5. Each split into two stages (.0 and .1), mapping to levels 0 through 9. The Power Tier Bonus is just your tier number. P1 gives you +1. P3 gives you +3. P5 gives you +5. It's almost like someone named them after the number they produce. </p>
+<h4 id="power-tier-bonuses">Power Tier Bonuses</h4>
+<p>The Power Tier Bonus is simply your Power Tier number. As you advance from P1 to P5, this value scales with you, from +1 to +5, setting the ceiling for every modifier in the system. Additional Dice, Rerolls, Roll Bonuses: all capped by the same number. One value, consistently applied across every mechanical context that calls for it. The level of Kit items is also determined by Power Tiers.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Power Tier</th>
+<th style="text-align: left;">Tier Bonus</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">P1</td>
+<td style="text-align: left;">+1</td>
+</tr>
+<tr>
+<td style="text-align: left;">P2</td>
+<td style="text-align: left;">+2</td>
+</tr>
+<tr>
+<td style="text-align: left;">P3</td>
+<td style="text-align: left;">+3</td>
+</tr>
+<tr>
+<td style="text-align: left;">P4</td>
+<td style="text-align: left;">+4</td>
+</tr>
+<tr>
+<td style="text-align: left;">P5</td>
+<td style="text-align: left;">+5</td>
+</tr>
+</tbody>
+</table>
+<h3 id="combat-tier">Combat Tier</h3>
+<p>A character's <strong>Combat Tier</strong> represents raw fighting instinct; The accumulated edge that comes from surviving exchanges, reading opponents, and drilling the fundamentals until they become reflex. Where Attributes define who a character is and Skills define what they can do. Combat Tier defines how well they fight when everything is on the line.</p>
+<p>Combat Tier is an optional advancement track, separate from Skills, Attributes, and Profession Features. It is not tied to a setting or content module. Any character, with or without a Profession, may advance their Combat Tier.</p>
+<p>Some of the terms used in this section are covered in more detail in the <strong>Combat</strong> section.</p>
+<h4 id="combat-tier-ranks">Combat Tier Ranks</h4>
+<p>Combat Tier ranks run from CT1 to CT5. Each rank is purchased once per Power Tier advancement. The cost equals half the AP gained in that Power Tier; 3 AP at P1 and P2, 4 AP at P3 and P4, and 5 AP at P5. A character may advance their Combat Tier <strong>once per Power Tier</strong>. Meaning CT5 is achievable by the time a character reaches P5, if they consistently invest in it.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Combat Tier</th>
+<th style="text-align: left;">Cost</th>
+<th style="text-align: left;">Available At</th>
+<th style="text-align: left;">Cumulative AP Spent</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">CT1</td>
+<td style="text-align: left;">3 AP</td>
+<td style="text-align: left;">P1</td>
+<td style="text-align: left;">3</td>
+</tr>
+<tr>
+<td style="text-align: left;">CT2</td>
+<td style="text-align: left;">3 AP</td>
+<td style="text-align: left;">P2</td>
+<td style="text-align: left;">6</td>
+</tr>
+<tr>
+<td style="text-align: left;">CT3</td>
+<td style="text-align: left;">4 AP</td>
+<td style="text-align: left;">P3</td>
+<td style="text-align: left;">10</td>
+</tr>
+<tr>
+<td style="text-align: left;">CT4</td>
+<td style="text-align: left;">4 AP</td>
+<td style="text-align: left;">P4</td>
+<td style="text-align: left;">14</td>
+</tr>
+<tr>
+<td style="text-align: left;">CT5</td>
+<td style="text-align: left;">5 AP</td>
+<td style="text-align: left;">P5</td>
+<td style="text-align: left;">19</td>
+</tr>
+</tbody>
+</table>
+<p>A character who reaches P5 and has invested in Combat Tier at every opportunity will have spent 19 of their 38 total Advancement Points on this track. That is a meaningful commitment, not a free bonus.</p>
+<h4 id="choosing-a-modifier-at-each-rank">Choosing a Modifier at Each Rank</h4>
+<p>Each time a character advances their Combat Tier, they choose <strong>one modifier type</strong> to improve. The available types are the same three available to Profession Features: <strong>Additional Dice</strong>, <strong>Reroll</strong>, and <strong>Roll Bonus</strong>.  Check out <em>Modifiers</em> in <strong>Combat</strong> for more info on Modifiers. </p>
+<p>The value of that modifier equals the number of times that type has been chosen across all Combat Tier advancements. This is the character's <strong>Combat Tier rank in that modifier type</strong>.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Times Advanced</th>
+<th style="text-align: left;">Modifier Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">1</td>
+<td style="text-align: left;">+1</td>
+</tr>
+<tr>
+<td style="text-align: left;">2</td>
+<td style="text-align: left;">+2</td>
+</tr>
+<tr>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">+3</td>
+</tr>
+<tr>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">+4</td>
+</tr>
+<tr>
+<td style="text-align: left;">5</td>
+<td style="text-align: left;">+5</td>
+</tr>
+</tbody>
+</table>
+<p>A character who chooses Roll Bonus at CT1 and CT2 has a <strong>+2 Roll Bonus</strong> from Combat Tier. If they then choose Additional Dice at CT3, they have a <strong>+2 Roll Bonus</strong> and <strong>+1 Additional Die</strong> from Combat Tier. Each type tracks its own rank independently.</p>
+<p>There is no restriction on how many times a single modifier type can be chosen. A character may invest all five advancements into Reroll and carry <strong>5 Rerolls</strong> from Combat Tier alone.</p>
+<h4 id="combat-tier-modifiers-are-always-on">Combat Tier Modifiers Are Always On</h4>
+<p>Combat Tier bonuses are permanent and passive. They apply to <strong>all</strong> combat rolls automatically. There is no activation, no trigger, and no per-Exchange limit. The character simply fights better.</p>
+<h4 id="combat-tier-has-its-own-cap">Combat Tier Has Its Own Cap</h4>
+<p>Combat Tier modifiers operate under a <strong>separate cap</strong> from Kit and Profession Features. The Tier Bonus cap that governs Kit and Profession Features does not apply to Combat Tier. Equally, Combat Tier values do not count toward that cap.</p>
+<p>Each modifier type has its own independent ceiling within the Combat Tier track itself: the maximum value for any single modifier type from Combat Tier is <strong>equal to the number of times it has been chosen</strong>, with a natural ceiling of <strong>+5</strong> at CT5.  </p>
+<p>This means a P3 character could have a +2 Roll Bonus from their weapon mod, a +3 Roll Bonus from a Profession Feature (capped at their Tier Bonus), and a +1 Roll Bonus from Combat Tier — all simultaneously. Combat Tier sits outside the Tier Bonus cap system entirely.</p>
+<h4 id="combat-tier-and-advancement-points">Combat Tier and Advancement Points</h4>
+<p>The AP cost comes from the character's normal Advancement Point pool. Spending AP on Combat Tier means fewer points available for Skills and Attributes. This is the core tension of the track: raw combat capability, purchased at the direct cost of growth elsewhere.</p>
+<p>A character who never advances their Combat Tier loses nothing, no mechanical gap is created. A character who pursues CT5 aggressively arrives there as a sharper, leaner fighter who has traded breadth of skill for depth of instinct.</p>
+<hr />
+<h4 id="example-combat-tier-in-play-csrpg"><em>Example: Combat Tier in Play (CS:RPG)</em></h4>
+<p>Zero is a P3 character who has advanced Combat Tier three times.</p>
+<ul>
+<li><strong>CT1 (P1):</strong> Zero chose Roll Bonus. Combat Tier Roll Bonus: <strong>+1</strong>.</li>
+<li><strong>CT2 (P2):</strong> Zero chose Roll Bonus again. Combat Tier Roll Bonus: <strong>+2</strong>.</li>
+<li><strong>CT3 (P3):</strong> Zero chose Additional Dice. Combat Tier Additional Dice: <strong>+1</strong>.</li>
+</ul>
+<p>Zero now carries a permanent <strong>+2 Roll Bonus</strong> and <strong>+1 Additional Die</strong> on all combat rolls from Combat Tier alone, in addition to whatever his Kit and Profession Features provide. Those Kit and Profession bonuses remain subject to his Tier Bonus cap of +3. His Combat Tier bonuses do not interact with that cap in either direction. He has spent 10 Advancement Points.</p>
+<p>At P4 and P5, Zero could continue investing. Pushing his Combat Tier Roll Bonus to +3 and beyond, or diversifying into Reroll. By P5, a fully invested Zero could carry something like <strong>+3 Roll Bonus / +1 Additional Die / +1 Reroll</strong> from Combat Tier, permanently baked into every exchange he walks into. </p>
+<hr />
+<h2 id="professions">Professions</h2>
+<p>A <strong>Profession</strong> is a structured set of mechanical features that define how a character fights, adapts, and grows beyond the baseline afforded by Attributes, Skills, and Kit. Where Attributes represent who a character <em>is</em> and Skills represent what a character can <em>do</em>, a Profession represents how a character <em>operates</em>. A specific philosophy of capability that persists and deepens across all five Power Tiers.</p>
+<p>A character may have exactly one Profession, chosen at character creation. That choice is permanent. A Profession is not a role that can be reassigned. It is a dimension of identity, as fixed as the Attributes that define the character's nature.</p>
+<p>Professions are defined entirely within Content Modules. The Base10 system provides the mechanical framework. What Profession Features can do, how they interact with the rest of the system, and what a Content Module must define to implement them. The features themselves, their names, their triggers, and their meaning within a given setting belong to the module.</p>
+<p><em>⚠️ [Content Module] — Player Professions, Profession features and, descriptions are defined in the relevant Content Module.</em></p>
+<h3 id="profession-features">Profession Features</h3>
+<p>Each Profession consists of five <strong>Profession Features</strong>, one unlocked at the <strong>.0 stage of each Power Tier</strong> — at levels 0, 2, 4, 6, and 8. A character who selects a Profession at character creation receives their first Feature immediately. Each subsequent Feature arrives when the character reaches the next tier's base stage.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Power Tier</th>
+<th style="text-align: left;">Stage</th>
+<th style="text-align: left;">Level</th>
+<th style="text-align: left;">Feature Unlocked</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">P1</td>
+<td style="text-align: left;">P1.0</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">Feature 1</td>
+</tr>
+<tr>
+<td style="text-align: left;">P2</td>
+<td style="text-align: left;">P2.0</td>
+<td style="text-align: left;">2</td>
+<td style="text-align: left;">Feature 2</td>
+</tr>
+<tr>
+<td style="text-align: left;">P3</td>
+<td style="text-align: left;">P3.0</td>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">Feature 3</td>
+</tr>
+<tr>
+<td style="text-align: left;">P4</td>
+<td style="text-align: left;">P4.0</td>
+<td style="text-align: left;">6</td>
+<td style="text-align: left;">Feature 4</td>
+</tr>
+<tr>
+<td style="text-align: left;">P5</td>
+<td style="text-align: left;">P5.0</td>
+<td style="text-align: left;">8</td>
+<td style="text-align: left;">Feature 5</td>
+</tr>
+</tbody>
+</table>
+<p><em>⚠️ [Content Module] — All Profession Feature definitions, including names, descriptions, triggers, and setting-specific context, are defined in the relevant Content Module.</em></p>
+<h4 id="playing-without-a-profession">Playing Without a Profession</h4>
+<p>Playing without a Profession is always valid. A Profession-less character is defined entirely by their Attributes, Skills, and Kit. A complete and functional configuration. No mechanical gap is created by the absence of a Profession. Profession-less play suits characters whose identity resists categorization, campaigns that prefer a flatter capability structure, or groups who want to run a session before committing to Content Module specifics.</p>
+<h4 id="what-profession-features-can-do">What Profession Features Can Do</h4>
+<p>Profession Features give additional focused growth. Professions can provide <strong>Starting Bonuses</strong> and <strong>Features</strong>.  These may grant any of the following:</p>
+<ul>
+<li><strong>Additional Dice</strong> — Temporarily expand the combat dice pool for a qualifying action.</li>
+<li><strong>Reroll</strong> — Re-roll a number of dice before the Roll Bonus is applied. By default, Rerolls from Profession Features apply to Combat rolls. A Content Module may specify that a given Feature extends Reroll access to Chaos Rolls.</li>
+<li><strong>Roll Bonus</strong> — Add a flat value to every die in the final pool after all rerolls are resolved.</li>
+<li><strong>Skill Bonus</strong> - Adds a point to a skill to deepen the Profession's specialized abilities. One or more additional pre-allocated Advancement Points applied to specific Skills. Each bonus AP adds +10% to that Skill's base percentage, exactly as a player-spent AP would. These points are fixed to the named Skills and cannot be reallocated.  </li>
+<li><strong>Attribute Bonus</strong> — A direct increase to a specific Attribute score. One or more additional pre-allocated Advancement Points are applied to the Attribute score. </li>
+<li><strong>Combat Tier Bonus</strong> - Provides an advancement to the players Combat Tier. One or more additional pre-allocated Advancement Points applied to a specific Modifier (Additional Dice, Reroll, Roll Bonus) allowing advanced combat capabilities.   </li>
+<li><strong>Passive Effects</strong> — Effects that operate outside the standard modifier system entirely. These are defined by the Content Module and may include conditional abilities, unique resolution mechanics, or narrative permissions with mechanical weight.</li>
+</ul>
+<p>Profession Features do <strong>not</strong> grant Damage Bonus or Armor Penetration. These modifier types are Kit-exclusive.</p>
+<p><em>⚠️ [Content Module] — Which Bonuses and Features are provided, and by how much, are defined in the relevant Content Module.</em></p>
+<h4 id="profession-features-and-the-tier-bonus-cap">Profession Features and the Tier Bonus Cap</h4>
+<p>Whether a Profession Feature is subject to the Tier Bonus cap depends on the type of effect it produces:</p>
+<ul>
+<li><strong>Additional Dice, Reroll, and Roll Bonus</strong> granted by Profession Features are subject to the same Tier Bonus cap as Kit. The combined total of any single modifier type, from all Kit sources and all Profession Feature sources together, cannot exceed the character's current Tier Bonus.</li>
+<li><strong>Combat Tier Bonus</strong> operate according the the Combat Tier advancement mechanics.  </li>
+<li><strong>Passive Effects</strong> operate outside this cap. They are governed by their own module-defined rules and do not interact with the Tier Bonus cap system.</li>
+</ul>
+<h3 id="designing-a-profession-content-module-requirements">Designing a Profession: Content Module Requirements</h3>
+<p>A Content Module introducing one or more Professions must define the following for each Profession:</p>
+<h4 id="1-profession-identity">1. Profession Identity</h4>
+<p>A narrative brief describing who this Profession is within the setting, their role, their approach, and what distinguishes them from other Professions. The brief should establish the thematic logic from which all mechanical features follow. Players reading the identity brief should understand the character before reading a single feature.</p>
+<p>Content Modules may extend the identity brief with alignment axes, archetypes, or other setting-specific framing. These are narrative tools; they carry no mechanical weight in the Base10 system.</p>
+<h4 id="2-five-profession-features">2. Five Profession Features</h4>
+<p>For each of the five Features (one per Power Tier), the module states the intended mechanical purpose in plain terms: what the Feature is meant to let the character do, and under what conditions it activates. The Base10 framework handles scaling, cap interaction, and resolution order. The module does not need to restate those rules, it only needs to define the trigger and intent clearly enough for the framework to apply.</p>
+<p>Each Feature definition must specify:</p>
+<ul>
+<li>The <strong>effect type</strong> — Additional Dice, Reroll, Roll Bonus, or Passive Effect</li>
+<li>The <strong>trigger</strong> — when the Feature activates and what qualifies</li>
+<li>The <strong>scope</strong> — Combat rolls only, or extended to Chaos Rolls (Reroll Features only)</li>
+<li>For Passive Effects — the full resolution rules, since the Base10 framework does not govern these</li>
+</ul>
+<h4 id="3-starting-bonuses-if-applicable">3. Starting Bonuses <em>(if applicable)</em></h4>
+<p>If the Profession grants Starting Bonuses, the module must list each bonus explicitly:</p>
+<ul>
+<li>For <strong>Skill Starting Bonuses</strong>: name the Skill and the number of bonus AP granted. Clarify that these points are pre-allocated and cannot be reallocated by the player.</li>
+<li>For <strong>Attribute Starting Bonuses</strong>: name the Attribute and the amount of the increase. Note that this increase is applied at character creation and is subject to the standard Attribute maximum of 9.</li>
+<li>For <strong>Combat Tier Bonuses</strong>: name the Modifier the bonus applies to; Reroll, Additional Dice or Roll Bonus and the amount of the increase.  </li>
+</ul>
+<h4 id="4-associated-kit-if-applicable">4. Associated Kit <em>(if applicable)</em></h4>
+<p>Some Professions are mechanically entangled with specific Kit; A signature weapon, a piece of technology, or an augmentation that the Profession is built around. If a Profession assumes access to specific Kit, the module must define that Kit in its Kit section and note the dependency clearly in the Profession definition.</p>
+<p>Profession Features may reference associated Kit as a trigger condition. The Kit itself is governed by the standard Kit rules; the Profession Feature only defines what happens when the condition is met.</p>
+<hr />
+<h4 id="example-the-operator-csrpg"><em>Example: The Operator (CS:RPG)</em></h4>
+<blockquote>
+<p><em>Every shadow holds a secret, and every secret holds power.</em></p>
+</blockquote>
+<p>The Operator Profession emerged from the complex political landscape of post-Wave conflicts, where direct confrontation gave way to subtler forms of warfare. Operators are the unseen hands that shape events from the shadows — masters of stealth, deception, and data manipulation who navigate advanced technology and social structures with unparalleled finesse.</p>
+<p><strong>Associated Kit:</strong> The <strong>Neural Interface Symbiote</strong>. A suite of subdermal communications, pheromone analyzers, and micro-expression readers feeding directly into the Operator's enhanced neural network. The Symbiote is the mechanical and narrative anchor for all Operator Features. Higher-grade Symbiotes expand simultaneous connection capacity and operational complexity.</p>
+<p><strong>Starting Bonuses:</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Bonus Type</th>
+<th style="text-align: left;">Target</th>
+<th style="text-align: left;">Amount</th>
+<th style="text-align: left;">Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Skill Starting Bonus</td>
+<td style="text-align: left;">Data Manipulation</td>
+<td style="text-align: left;">+1 AP</td>
+<td style="text-align: left;">+10% to Data Manipulation base percentage</td>
+</tr>
+<tr>
+<td style="text-align: left;">Skill Starting Bonus</td>
+<td style="text-align: left;">Social Engineering</td>
+<td style="text-align: left;">+1 AP</td>
+<td style="text-align: left;">+10% to Social Engineering base percentage</td>
+</tr>
+<tr>
+<td style="text-align: left;">Attribute Starting Bonus</td>
+<td style="text-align: left;">Intuition</td>
+<td style="text-align: left;">+1</td>
+<td style="text-align: left;">Intuition Attribute score increases by 1 at character creation</td>
+</tr>
+</tbody>
+</table>
+<p>These bonuses are awarded at character creation in addition to the character's normal 3 starting Advancement Points. The Skill bonuses are pre-allocated and cannot be reallocated. The Intuition bonus is applied before play begins and is subject to the standard Attribute maximum of 9.</p>
+<p><strong>Alignment (narrative only):</strong></p>
+<p><em>Light (Ghost / Infiltrator / Spy)</em> — I move through systems and societies like a ghost, gathering intelligence and manipulating events without leaving a trace. The perfect spy, invisible in plain sight.</p>
+<p><em>Dark (Puppeteer / Manipulator / Information Terrorist)</em> — Every system has its weaknesses, and every mind its breaking point. The puppet master, pulling strings from the darkness.</p>
+<h4 id="operator-profession-features">Operator Profession Features</h4>
+<p><strong>P1 — Social Read</strong>
+The Operator's pheromone analyzers and micro-expression readers provide an edge in any social encounter. When attempting a Social Engineering Skill check, the Operator gains a Reroll (Chaos Roll). </p>
+<p><strong>P2 — Ghost Protocol</strong>
+The Operator has learned to move through systems and spaces without triggering detection. When attempting a Stealth or Data Manipulation Skill check, the Operator gains a Reroll (Chaos Roll). </p>
+<p><strong>P3 — Exploit</strong>
+Under pressure, the Operator can identify and act on a critical vulnerability in a target system or opponent. Once per Exchange, when the Operator commits Attack dice, they may apply a Roll Bonus to that attack pool. Scales to Tier Bonus.</p>
+<p><strong>P4 — Parallel Process</strong>
+The Operator's upgraded Symbiote allows simultaneous management of multiple active operations. Passive Effect: the Operator may use a Skill during an Exchange without forfeiting their Defense Pool. Their Attack Pool is still forfeited. They remain a valid target and must respond to incoming attacks with no Attack dice available to counter.</p>
+<p><strong>P5 — System Control</strong>
+At peak capability, the Operator can dominate the information environment entirely. Passive Effect: defined in the CS:RPG Content Module. This Feature represents the Operator's ability to simultaneously manipulate multiple systems and identities. The specific mechanical expression scales to the scenario and is Custodian-adjudicated within module-defined parameters.</p>
+<p><em>⚠️ The above is a framework-level illustration using CS:RPG content. Final Operator Feature definitions, including precise trigger language, associated Skill Slot references, and Passive Effect rules for P4 and P5, are defined in the CS:RPG Content Module.</em></p>
+<hr />
+<h2 id="skills">Skills</h2>
+<p>Skills are how your character does things. Not who they <em>are</em>. That's Attributes. And not what gear they're carrying. That's Kit. Skills are the learned capabilities sitting in between. Pretty straightforward concept, been in RPGs for a while now.</p>
+<h3 id="skill-slots-and-bonuses">Skill Slots and Bonuses</h3>
+<p>Each Skill lives in a <strong>Skill Slot</strong>, which is just a pairing of two Attributes. The slot tells you which two Attributes are relevant to that Skill. A Skill in the C-F slot uses the bonuses for Curiosity and Focus for the <strong>Attribute Bonus</strong> part of the <strong>Chaos Bonus</strong>. </p>
+<p>Skills have levels just like characters, 0 - 9. You invest <strong>Advancement Points</strong> (AP) into a Skill to level it up. Each point pushes the Skill up a level, and each level adds x10% to your base success chance after it has been activated. The first point allocated activates the slot, which matters because an inactive slot only gives you <em>one</em> Attribute bonus instead of both when calculating the Chaos Bonus. So to be clear, the first AP allocated to a skill at level 0 <em>activates</em> the skill but <strong>does not</strong> give the +10%. That comes at Skill level 1. Why? because at Skill Level 0, 10% x 0 = 0. At Skill Level 1, 10% x 1 = 1. Math be Mathin. Keep up. </p>
+<p>When you actually <em>use</em> a Skill, you're making a <strong>Chaos Roll</strong>. A contested d100 check. The Custodian rolls against your Base Skill percentage. If they roll under it, you succeed automatically and everyone moves on with their lives. If they roll over it, you roll too and try to beat their result using your <strong>Chaos Bonus</strong>, which is just your Attribute bonuses plus your Skill level added together.</p>
+<p>Each Skill occupies a <strong>Skill Slot</strong>. A pairing of exactly two Attributes. The pairing determines which Attributes contribute to rolls made with that Skill. A Skill in the <strong>C–F</strong> slot draws on both Curiosity and Focus.</p>
+<p>Each Skill has 10 levels (0–9). The Skill Bonus is the Skill's current level multiplied by 10%, representing the base probability of success. The first Advancement Point allocated activates the slot at level 0. No percentage bonus yet, but both paired Attribute bonuses now apply to the Base Skill. Every allocation after that advances the level, adding 10% per step. Nonactivated slots may only draw on one Attribute bonus.</p>
+<p>Skills themselves, their names, definitions, and applicable situations are customizable and defined per content module. The Skill Slots are the fixed architecture; the Skills that fill them are setting-specific.</p>
+<p><em>⚠️ [Content Module] — Skill names, descriptions, and contextual applications are defined in the relevant Content Module. Placeholder slot labels are used throughout this guide.</em></p>
+<h4 id="chaos-bonus">Chaos Bonus</h4>
+<p>The <strong>Chaos Bonus</strong> is the number you add to your d100 roll when the Custodian's roll beats your <strong>Base Skill</strong> percentage and you have to fight for the success yourself.</p>
+<p>It's two things added together:</p>
+<p>Your <strong>Attribute Bonus</strong> from both paired Attributes in the Skill Slot
+Your <strong>Skill Slot Level</strong>. Just the raw level number, not the percentage</p>
+<p>That's it. If your Curiosity bonus is +3, your Focus bonus is +4, and your Navigation Skill is level 4, your Chaos Bonus is +11. You roll d100, add 11, and try to beat whatever the Custodian rolled.
+The reason it exists is that Base Skill percentage is your comfort zone, the range where you just succeed without drama. The Chaos Roll is what happens when the situation is harder than your baseline can handle. The Chaos Bonus keeps you competitive without making failure impossible, and keeps success uncertain without making it feel arbitrary.
+Higher Skill level helps. Better Attributes help. Both together help more. Which is sort of the whole point of building a character. Right?</p>
+<h4 id="skill-rolls">Skill Rolls</h4>
+<p>When a character wants to perform an action or task, contested 1d100 rolls called <strong>Chaos Rolls</strong> are made. The procedure is as follows:</p>
+<ul>
+<li><strong>Step 1 — Identify the Skill:</strong> The Custodian determines which Skill Slot applies to the attempted action.</li>
+<li><strong>Step 2 — Determine Skill Bonus:</strong> Multiply the Advancement Points allocated to that Skill Slot by 10 to produce the Skill Bonus.</li>
+<li><strong>Step 3 — Apply Attribute Bonus:</strong> Apply <strong>one</strong> or <strong>both</strong> paired Attribute bonuses depending on whether the slot is active. Added to the Skill Bonus, this produces the character's Base Skill.<strong>Base Skill</strong>.</li>
+<li><strong>Step 4 — Custodian's Chaos Roll:</strong> The Custodian rolls 1d100. If the result is <strong>equal to or lower</strong> than the character's Base Skill, the character succeeds automatically.</li>
+<li><strong>Step 5 — Character's Chaos Roll:</strong> If the Custodian's roll exceeds the Base Skill, the character must overcome the odds. The character rolls 1d100 and adds the Skill Slot's <strong>Chaos Bonus</strong>, a combination of the <strong>Attributes Bonus</strong> and the <strong>Skill Slot Level</strong>. If this result exceeds the Custodian's roll, the character succeeds. Otherwise, the attempt fails.</li>
+</ul>
+<hr />
+<h4 id="example-navigation-skill-csrpg"><em>Example: Navigation Skill (CS:RPG)</em></h4>
+<p>Zero attempts to chart a route through a debris field. The Custodian rules the Navigation skill applies, which sits in the <strong>C–F</strong> slot (Curiosity + Focus).</p>
+<ul>
+<li>Navigation is an active Skill. Zero has allocated Advancement Points to the slot.</li>
+<li>Zero has 5 Advancement Points in Navigation, 0-4. Which activates the slot and counts 4 Advancement Points toward the Skill Bonus: <strong>4 × 10 = 40%</strong>.</li>
+<li>Zero's Curiosity bonus is <strong>+3</strong> and Focus bonus is <strong>+4</strong>, for a combined Attribute bonus of <strong>+7</strong>, giving a Base Skill of <strong>47</strong>%.</li>
+<li>The Custodian rolls 1d100 and gets <strong>61</strong>. Higher than Zero's Base Skill of <strong>47</strong>.</li>
+<li>Zero must now roll, adding the Skills <strong>Chaos Bonus</strong>: +7 (Curiosity + Focus) +4 (Skill Slot Level) = +11.</li>
+<li>Zero rolls 1d100 and gets <strong>55</strong>. He adds the Chaos Bonus of <strong>11</strong> for a total of <strong>66</strong></li>
+<li>66 &gt; 61. Zero succeeds and plots the route through the debris field.</li>
+<li>Had Zero's final result been 61 or lower, the route would have been miscalculated. Poor Zero.</li>
+</ul>
+<hr />
+<h3 id="skill-architecture">Skill Architecture</h3>
+<h4 id="the-full-skill-slot-matrix">The Full Skill Slot Matrix</h4>
+<p>There are 21 unique Attribute pairings available across the Base10 system. These represent all possible Skill Slots — each one a potential home for a customizable Skill.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;"></th>
+<th style="text-align: center;"><strong>Cu</strong></th>
+<th style="text-align: center;"><strong>Em</strong></th>
+<th style="text-align: center;"><strong>Fo</strong></th>
+<th style="text-align: center;"><strong>Cn</strong></th>
+<th style="text-align: center;"><strong>In</strong></th>
+<th style="text-align: center;"><strong>Ve</strong></th>
+<th style="text-align: center;"><strong>Wi</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Cu</strong></td>
+<td style="text-align: center;">—</td>
+<td style="text-align: center;">Cu–Em</td>
+<td style="text-align: center;">Cu–Fo</td>
+<td style="text-align: center;">Cu–Cn</td>
+<td style="text-align: center;">Cu–In</td>
+<td style="text-align: center;">Cu–Ve</td>
+<td style="text-align: center;">Cu–Wi</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Em</strong></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;">—</td>
+<td style="text-align: center;">Em–Fo</td>
+<td style="text-align: center;">Em–Cn</td>
+<td style="text-align: center;">Em–In</td>
+<td style="text-align: center;">Em–Ve</td>
+<td style="text-align: center;">Em–Wi</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Fo</strong></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;">—</td>
+<td style="text-align: center;">Fo–Cn</td>
+<td style="text-align: center;">Fo–In</td>
+<td style="text-align: center;">Fo–Ve</td>
+<td style="text-align: center;">Fo–Wi</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Cn</strong></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;">—</td>
+<td style="text-align: center;">Cn–In</td>
+<td style="text-align: center;">Cn–Ve</td>
+<td style="text-align: center;">Cn–Wi</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>In</strong></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;">—</td>
+<td style="text-align: center;">In–Ve</td>
+<td style="text-align: center;">In–Wi</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Ve</strong></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;">—</td>
+<td style="text-align: center;">Ve–Wi</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Wi</strong></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;">—</td>
+</tr>
+</tbody>
+</table>
+<p>The full matrix contains 21 unique slots — the complete system ceiling. Groups are not required to use all 21 Skill Slots. The Base10 system is designed to scale across three balanced tiers.</p>
+<h3 id="skill-tiers">Skill Tiers</h3>
+<h4 id="modular-tier-structure-7-14-and-21-skills">Modular Tier Structure: 7, 14, and 21 Skills</h4>
+<p>Base10 supports three Skill Tier configurations. Each configuration is mathematically balanced: at every tier, every Attribute appears in exactly the same number of Skill Slots. No Attribute is over- or under-represented in any valid configuration.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;"><strong>Skill Tier</strong></th>
+<th style="text-align: left;"><strong>Total Skills</strong></th>
+<th style="text-align: left;"><strong>Attribute Appearances</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Core</td>
+<td style="text-align: left;">7</td>
+<td style="text-align: left;">2 per Attribute</td>
+</tr>
+<tr>
+<td style="text-align: left;">Standard</td>
+<td style="text-align: left;">14</td>
+<td style="text-align: left;">4 per Attribute</td>
+</tr>
+<tr>
+<td style="text-align: left;">Complete</td>
+<td style="text-align: left;">21</td>
+<td style="text-align: left;">6 per Attribute</td>
+</tr>
+</tbody>
+</table>
+<h4 id="core-tier--7-skills">Core Tier — 7 Skills</h4>
+<p>The Core Tier is the minimum viable Skill configuration. Seven Skill Slots are active, each Attribute appearing exactly twice. This tier is recommended for introductory sessions, streamlined play, or settings that benefit from a tightly defined ability set.</p>
+<p>The Core Tier pairings are selected to maximize thematic coherence — each pairing should feel immediately legible to players. Cognitively and perceptually oriented attributes anchor the first four slots; physical and endurance oriented attributes anchor the final three.</p>
+<p><em>⚠️ [Content Module] — Skill names, descriptions, and contextual applications for each slot are defined in the relevant Content Module.</em></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;"><strong>Slot</strong></th>
+<th style="text-align: left;"><strong>Pair</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">1</td>
+<td style="text-align: left;">Cu – Em</td>
+</tr>
+<tr>
+<td style="text-align: left;">2</td>
+<td style="text-align: left;">Cu – Fo</td>
+</tr>
+<tr>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">Em – In</td>
+</tr>
+<tr>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">Fo – In</td>
+</tr>
+<tr>
+<td style="text-align: left;">5</td>
+<td style="text-align: left;">Cn – Ve</td>
+</tr>
+<tr>
+<td style="text-align: left;">6</td>
+<td style="text-align: left;">Cn – Wi</td>
+</tr>
+<tr>
+<td style="text-align: left;">7</td>
+<td style="text-align: left;">Ve – Wi</td>
+</tr>
+</tbody>
+</table>
+<h4 id="standard-tier--14-skills">Standard Tier — 14 Skills</h4>
+<p>The Standard Tier is the recommended configuration for ongoing campaign play. Fourteen Skill Slots are active, each Attribute appearing exactly four times. This tier supports distinct character archetypes and meaningful specialization without overwhelming new players.</p>
+<p>The Standard Tier is constructed by building on the Core Tier — the seven Core pairings are retained, and seven additional pairings are added. The additions deepen cross-domain coverage, connecting the cognitive cluster to the physical cluster through shared attributes.</p>
+<p><em>⚠️ [Content Module] — Skill names, descriptions, and contextual applications for each slot are defined in the relevant Content Module.</em></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;"><strong>Slot</strong></th>
+<th style="text-align: left;"><strong>Pair</strong></th>
+<th style="text-align: left;"></th>
+<th style="text-align: left;"><strong>Slot</strong></th>
+<th style="text-align: left;"><strong>Pair</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">1</td>
+<td style="text-align: left;">Cu – Em</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">8</td>
+<td style="text-align: left;">Cu – In</td>
+</tr>
+<tr>
+<td style="text-align: left;">2</td>
+<td style="text-align: left;">Cu – Fo</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">9</td>
+<td style="text-align: left;">Cu – Ve</td>
+</tr>
+<tr>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">Em – In</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">10</td>
+<td style="text-align: left;">Em – Ve</td>
+</tr>
+<tr>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">Fo – In</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">11</td>
+<td style="text-align: left;">Em – Wi</td>
+</tr>
+<tr>
+<td style="text-align: left;">5</td>
+<td style="text-align: left;">Cn – Ve</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">12</td>
+<td style="text-align: left;">Fo – Cn</td>
+</tr>
+<tr>
+<td style="text-align: left;">6</td>
+<td style="text-align: left;">Cn – Wi</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">13</td>
+<td style="text-align: left;">Fo – Ve</td>
+</tr>
+<tr>
+<td style="text-align: left;">7</td>
+<td style="text-align: left;">Ve – Wi</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">14</td>
+<td style="text-align: left;">Fo – Wi</td>
+</tr>
+</tbody>
+</table>
+<h4 id="complete-tier--21-skills">Complete Tier — 21 Skills</h4>
+<p>The Complete Tier activates all 21 Skill Slots. Every Attribute appears exactly six times. This configuration is recommended for long-form campaigns, experienced groups, or settings that demand the full breadth of character expression the system can support.</p>
+<p>The seven slots added at the Complete Tier represent the most thematically complex pairings in the system — combinations that require more interpretive work to apply and reward players who engage with that nuance. Content Modules introducing Complete Tier skills should treat these slots as opportunities for setting-specific depth rather than straightforward capability expansion.</p>
+<p><em>⚠️ [Content Module] — Skill names, descriptions, and contextual applications for each slot are defined in the relevant Content Module.</em></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;"><strong>Slot</strong></th>
+<th style="text-align: left;"><strong>Pair</strong></th>
+<th style="text-align: left;"></th>
+<th style="text-align: left;"><strong>Slot</strong></th>
+<th style="text-align: left;"><strong>Pair</strong></th>
+<th style="text-align: left;"></th>
+<th style="text-align: left;"><strong>Slot</strong></th>
+<th style="text-align: left;"><strong>Pair</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">1</td>
+<td style="text-align: left;">Cu – Em</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">8</td>
+<td style="text-align: left;">Cu – In</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">15</td>
+<td style="text-align: left;">Em – Fo</td>
+</tr>
+<tr>
+<td style="text-align: left;">2</td>
+<td style="text-align: left;">Cu – Fo</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">9</td>
+<td style="text-align: left;">Cu – Ve</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">16</td>
+<td style="text-align: left;">Em – Cn</td>
+</tr>
+<tr>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">Em – In</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">10</td>
+<td style="text-align: left;">Em – Ve</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">17</td>
+<td style="text-align: left;">Cu – Cn</td>
+</tr>
+<tr>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">Fo – In</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">11</td>
+<td style="text-align: left;">Em – Wi</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">18</td>
+<td style="text-align: left;">Cu – Wi</td>
+</tr>
+<tr>
+<td style="text-align: left;">5</td>
+<td style="text-align: left;">Cn – Ve</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">12</td>
+<td style="text-align: left;">Fo – Cn</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">19</td>
+<td style="text-align: left;">Cn – In</td>
+</tr>
+<tr>
+<td style="text-align: left;">6</td>
+<td style="text-align: left;">Cn – Wi</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">13</td>
+<td style="text-align: left;">Fo – Ve</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">20</td>
+<td style="text-align: left;">In – Ve</td>
+</tr>
+<tr>
+<td style="text-align: left;">7</td>
+<td style="text-align: left;">Ve – Wi</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">14</td>
+<td style="text-align: left;">Fo – Wi</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">21</td>
+<td style="text-align: left;">In – Wi</td>
+</tr>
+</tbody>
+</table>
+<h3 id="skill-customization">Skill Customization</h3>
+<p>Skill Slots define the mechanical structure of a Skill by which two Attributes contribute to its rolls. The Skills themselves are defined by the content module in use. Groups working without a published module may define their own Skills directly.</p>
+<h4 id="defining-skills-within-slots">Defining Skills Within Slots</h4>
+<p>When defining a Skill for a given slot, the following principles apply:</p>
+<ul>
+<li>The Skill should be specific enough that both the Custodian and players know when it applies, but broad enough to see regular use across a variety of situations.</li>
+<li>The two paired Attributes should each feel relevant to the Skill's domain. A player invoking the Skill should be able to explain why both Attributes are in play.</li>
+<li>Skills within a tier should not overlap significantly. If two Skills apply to the same situation, one should be redefined or the scope of each narrowed.</li>
+</ul>
+<hr />
+<h4 id="example-the-ci-slot-csrpg"><em>Example: The C–I Slot (CS:RPG)</em></h4>
+<p>The C–I slot (Curiosity + Intuition) is defined in CS:RPG as the <strong>Situational Awareness</strong> skill: reading a new environment or situation for risks that aren't immediately visible. Curiosity drives the character to look; Intuition tells them what the details mean.</p>
+<p>The same slot in a different content module might become <strong>Arcane Recognition</strong> (identifying magical patterns and their likely origin), or <strong>Social Read</strong> (sensing undercurrents in a conversation), depending on the setting's priorities.</p>
+<hr />
+<h2 id="combat">Combat</h2>
+<p>Combat in Base10 is not a rigid sequence of declared turns. It is a pressure system; A confrontation that builds before it breaks, then resolves through a chain of action and reaction. No fixed turn order is assigned at the start of a fight. Instead, the sequence emerges from the combatants themselves: who reads the situation fastest, who commits first, and who responds to what.</p>
+<p>Combat moves through two distinct phases that repeat until the fight is over.</p>
+<p><strong>The Standoff</strong> is the moments before violence or the lull between exchanges. Every combatant is reading the room, tracking threats, deciding whether to move. This phase resolves through a contested Chaos Roll. Its outcome determines who holds the <strong>Edge</strong>, the right to act first, and sets the chain order for the Exchange that follows.</p>
+<p><strong>The Exchange</strong> is the violence itself. Beginning with the Edge holder, combatants commit Attack dice against valid targets. Each attack triggers an immediate reaction from its target before the chain continues. The Exchange runs until all Attack dice across all combatants are spent. Then the pools reset and a new Standoff begins.</p>
+<h3 id="combat-dice-pools">Combat Dice Pools</h3>
+<p>Every combatant has two dice pools: an <strong>Attack Pool</strong> and a <strong>Defense Pool</strong>. Both pools are equal in size to the combatant's combat dice pool as defined by their level.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Level</th>
+<th style="text-align: left;">Tier</th>
+<th style="text-align: left;">Attack Pool</th>
+<th style="text-align: left;">Defense Pool</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">P1.0</td>
+<td style="text-align: left;">1d10</td>
+<td style="text-align: left;">1d10</td>
+</tr>
+<tr>
+<td style="text-align: left;">1</td>
+<td style="text-align: left;">P1.1</td>
+<td style="text-align: left;">2d10</td>
+<td style="text-align: left;">2d10</td>
+</tr>
+<tr>
+<td style="text-align: left;">2</td>
+<td style="text-align: left;">P2.0</td>
+<td style="text-align: left;">3d10</td>
+<td style="text-align: left;">3d10</td>
+</tr>
+<tr>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">P2.1</td>
+<td style="text-align: left;">4d10</td>
+<td style="text-align: left;">4d10</td>
+</tr>
+<tr>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">P3.0</td>
+<td style="text-align: left;">5d10</td>
+<td style="text-align: left;">5d10</td>
+</tr>
+<tr>
+<td style="text-align: left;">5</td>
+<td style="text-align: left;">P3.1</td>
+<td style="text-align: left;">6d10</td>
+<td style="text-align: left;">6d10</td>
+</tr>
+<tr>
+<td style="text-align: left;">6</td>
+<td style="text-align: left;">P4.0</td>
+<td style="text-align: left;">7d10</td>
+<td style="text-align: left;">7d10</td>
+</tr>
+<tr>
+<td style="text-align: left;">7</td>
+<td style="text-align: left;">P4.1</td>
+<td style="text-align: left;">8d10</td>
+<td style="text-align: left;">8d10</td>
+</tr>
+<tr>
+<td style="text-align: left;">8</td>
+<td style="text-align: left;">P5.0</td>
+<td style="text-align: left;">9d10</td>
+<td style="text-align: left;">9d10</td>
+</tr>
+<tr>
+<td style="text-align: left;">9</td>
+<td style="text-align: left;">P5.1</td>
+<td style="text-align: left;">10d10</td>
+<td style="text-align: left;">10d10</td>
+</tr>
+</tbody>
+</table>
+<p>Both pools are fixed, openly known to all combatants, and reset at the start of each new Exchange. A P3 character always enters an Exchange with 5 Attack dice and 5 Defense dice.</p>
+<p>Attack dice are spent as they are committed to actions during the Exchange. Defense dice are spent as they are used to respond to incoming attacks. A combatant who has spent all their Attack dice may still defend with remaining Defense dice, but they cannot initiate further actions until the next Exchange.</p>
+<h3 id="the-standoff">The Standoff</h3>
+<p>Before any dice are committed to violence, every combatant rolls a contested <strong>Chaos Roll</strong> using an active Intuition-based Skill. This represents reading the room; tracking movement, clocking weapons, sensing who is about to break.</p>
+<p><em>⚠️ [Content Module] — The specific Skill used for the Standoff is whichever active Skill Slot in the current content module contains Intuition as one of its paired Attributes. In CS:RPG this is the Situational Awareness Skill (C–I slot). Different content modules may use different Intuition-paired Skills appropriate to their setting.</em></p>
+<h4 id="standoff-procedure">Standoff Procedure</h4>
+<p><strong>Step 1 — Everyone Rolls:</strong> All combatants roll their Intuition-based Skill as a Chaos Roll simultaneously, following the standard Chaos Roll procedure. Results are calculated and ranked highest to lowest across all combatants regardless of side. This determines the <strong>Chain Order</strong></p>
+<p><strong>Step 2 — Edge is Assigned:</strong> The combatant with the highest result holds the <strong>Edge</strong>. They have the right to open the Exchange and apply a modifier to their first action.</p>
+<p><strong>Step 3 — Edge Modifier:</strong> The Edge holder chooses one of the following modifiers to apply to their first action, scaled to their Tier Bonus:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Modifier</th>
+<th style="text-align: left;">Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Reroll</td>
+<td style="text-align: left;">Re-roll a number of dice equal to Tier Bonus before the Roll Bonus is applied. Tactical and controlled.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Roll Bonus</td>
+<td style="text-align: left;">Add Tier Bonus to every die in the attack pool after rerolls. Aggressive and decisive.</td>
+</tr>
+</tbody>
+</table>
+<p>The Edge holder selects their modifier at this point but does not have to use it immediately. The modifier stays with them and applies to their first action whenever it occurs, even if they pass and act later in the chain.</p>
+<p><strong>Step 4 — The Chain Order:</strong> The Edge holder may act or pass. If they pass, the combatant with the next highest Chaos Roll result may act, but receives no modifier. This cascade continues down the Chain Order until someone commits an action and the Exchange begins. If no combatant acts, no combat occurs.</p>
+<h4 id="ties-in-the-standoff">Ties in the Standoff</h4>
+<p>If two or more combatants roll identical Chaos Roll results, re-roll between tied combatants only to determine relative order among them.</p>
+<hr />
+<h4 id="example-standoff-csrpg"><em>Example: Standoff (CS:RPG)</em></h4>
+<p>Zero (P3), Blake (P2), and two hostile NPCs, Rook (P2) and Vex (P1), face off in a cargo bay. All four roll Situational Awareness (C-I).</p>
+<ul>
+<li>Zero: 74, highest result. Zero holds the Edge and chooses Roll Bonus (+3) as their modifier. Zero decides to pass for now, holding the modifier.</li>
+<li>Rook: 61, next highest. Rook may open the Exchange with no modifier. Rook commits and fires. The Exchange begins.</li>
+<li>Zero still holds their Roll Bonus. When Zero acts later in the chain, the modifier applies to that attack.</li>
+</ul>
+<hr />
+<h3 id="the-exchange">The Exchange</h3>
+<p>The Exchange is where the violence happens. It runs as a chain of actions and reactions. There are no formal turns. The chain flows continuously until all Attack dice are spent.</p>
+<h4 id="opening-the-exchange">Opening the Exchange</h4>
+<p>The combatant who commits the first action opens the Exchange. This is either the Edge holder or the first combatant in the cascade who chooses to act.</p>
+<p>The opening action must commit at <strong>least</strong> one Attack die against a valid target. There is no maximum and attacks may be split across multiple valid targets. A combatant may commit as many Attack dice as they choose in a single action. Committing more dice increases the chance of landing strikes but depletes the Attack pool faster.</p>
+<h4 id="using-a-skill-during-the-exchange">Using a Skill During the Exchange</h4>
+<p>A combatant may choose to use a Skill during the Exchange; hacking a door, treating a wound, calling in reinforcements, anything that requires a Chaos Roll. Doing so is a significant commitment.</p>
+<p>A combatant who uses a Skill during the Exchange immediately forfeits both their Attack Pool and their Defense Pool for the remainder of that Exchange. They cannot attack, they cannot react, and they cannot counter-attack. They are also a valid target with no Defense dice to respond with. Full damage applies.</p>
+<p>The Skill itself is resolved normally following the standard Chaos Roll procedure.</p>
+<p><em>⚠️ [Content Module] — Specific Skill applications during combat, and any narrative or mechanical consequences of success or failure, are defined in the relevant Content Module.</em></p>
+<h4 id="valid-targets">Valid Targets</h4>
+<p>A combatant may target any other combatant in the fight, subject to the following constraints:</p>
+<ul>
+<li><strong>Range:</strong> Attacks must comply with the range categories defined in the Movement section. A combatant cannot make a Hand-to-Hand attack against a target that is not in an adjacent hex. Ranged attacks are subject to Point Blank and Long Range rules including the Long Range penalty.</li>
+<li><strong>Positioning:</strong> The Custodian may rule that environmental factors, cover, or movement limit available targets.</li>
+</ul>
+<h3 id="reactions">Reactions</h3>
+<p>When a combatant is targeted by an attack, they respond immediately. This reaction takes priority over everything else including Chain Order. The chain does not continue. The reaction resolves first.</p>
+<p>After rolling Defense dice, the reacting combatant may immediately commit Attack dice of their own against any valid target. This counter-attack is part of the reaction. The counter-attack target must then react immediately in turn. The chain extends through actions and reactions for as long as combatants have dice to commit and targets to respond to.</p>
+<p>Chain Order only resumes when the reaction chain breaks. Meaning no combatant has a pending reaction and no one is responding to an active attack.</p>
+<h3 id="chain-order">Chain Order</h3>
+<p>After the opening action, and reactions have ceased, the Exchange continues in <strong>Chain Order</strong>, The sequence established by the Chaos Roll results during the Standoff.</p>
+<p>The combatant with the next highest Standoff result acts after the current action and its reaction resolve. The chain cycles from highest to lowest, then returns to the top, continuing until all Attack dice across all combatants are spent.</p>
+<p>Combatants who have spent all their Attack dice are skipped in the chain order. Their Defense dice remain active and they may still react to incoming attacks.</p>
+<h4 id="passing-in-the-chain">Passing in the Chain</h4>
+<p>A combatant may pass their position in the chain without committing an attack. Passing does not cost Attack dice. The chain moves to the next combatant in Standoff order. A combatant who passes retains all remaining Attack dice for future positions in the chain.</p>
+<h3 id="resolving-attacks">Resolving Attacks</h3>
+<ul>
+<li>The attacker rolls their committed Attack dice, rerolling any '0' results, if possible, before modifiers are applied.</li>
+<li>The defender rolls their committed Defense dice, rerolling any '0' results, if possible, before modifiers are applied.</li>
+<li>Each attacker die is compared individually to each defender die.</li>
+<li>If the attacker's die is higher than the corresponding defender's die, that strike lands.</li>
+<li>If the defender's die meets or exceeds the attacker's die, that strike is blocked.</li>
+<li>An unmodified '9' on an attack roll does 1 additional point of damage regardless of Roll Bonuses.</li>
+<li>An unmodified '9' on a defense roll automatically blocks a strike, including an unmodified '9' attack roll.</li>
+</ul>
+<p>Modifiers; Additional Dice, Rerolls, and Roll Bonus, are applied following the Order of Operations defined in the Modifiers section below.</p>
+<h4 id="combat-flow">Combat Flow</h4>
+<p><strong>Step 1 — Attack Declared:</strong> The attacking combatant declares their target and commits at least one Attack die.</p>
+<p><strong>Step 2 — Immediate Defense:</strong> The target immediately commits Defense dice to respond. There is no minimum. A combatant may commit as many or as few Defense dice as they choose, including zero if they accept the incoming strikes.</p>
+<p><strong>Step 3 — Counter-Attack:</strong> After Defense dice are committed, the reacting combatant may immediately commit Attack dice against any valid target. This is optional. If they counter-attack, that target must now react, extending the chain.</p>
+<p><strong>Step 4 — Resolution:</strong> Once no further reactions or counter-attacks are pending, all committed dice in the current chain are resolved following the standard combat resolution procedure.</p>
+<p><strong>Step 5 — Chain Resumes:</strong> When the reaction chain breaks, the next combatant in Standoff rank order takes their action.</p>
+<hr />
+<h4 id="example-chain-order-csrpg"><em>Example: Chain Order (CS:RPG)</em></h4>
+<p>Rook opens the Exchange and attacks Zero. Zero reacts immediately, committing Defense dice. Zero counter-attacks Vex with 2 Attack dice. Vex must now react to Zero's counter-attack before anything else resolves. Vex commits Defense dice but has no Attack dice left to counter. The chain breaks. Resolution happens. Chain Order resumes.</p>
+<hr />
+<h3 id="damage">Damage</h3>
+<p>One point of damage is applied for every successful strike that lands. Characters have five Damage Tiers:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Tier</th>
+<th style="text-align: left;">Status</th>
+<th style="text-align: left;">Penalty</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">1</td>
+<td style="text-align: left;">Hit</td>
+<td style="text-align: left;">-1 Roll Bonus</td>
+</tr>
+<tr>
+<td style="text-align: left;">2</td>
+<td style="text-align: left;">Hurt</td>
+<td style="text-align: left;">-Power Tier Roll Bonus, 3/4 Movement</td>
+</tr>
+<tr>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">Wounded</td>
+<td style="text-align: left;">-Power Tier Roll Bonus, 1/2 Movement</td>
+</tr>
+<tr>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">Incapacitated</td>
+<td style="text-align: left;">-Power Tier Roll Bonus, 1/4 Movement, 1/2 Dice Pool Min 1</td>
+</tr>
+<tr>
+<td style="text-align: left;">5</td>
+<td style="text-align: left;">Knocked Out</td>
+<td style="text-align: left;">No movement, No Dice Pool, No Actions</td>
+</tr>
+</tbody>
+</table>
+<p>The number of strikes a character can absorb before advancing to the next Damage Tier is determined by their Power Tier:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Power Tier</th>
+<th style="text-align: left;">Strikes Per Damage Tier</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">P1</td>
+<td style="text-align: left;">1 strike</td>
+</tr>
+<tr>
+<td style="text-align: left;">P2</td>
+<td style="text-align: left;">2 strikes</td>
+</tr>
+<tr>
+<td style="text-align: left;">P3</td>
+<td style="text-align: left;">3 strikes</td>
+</tr>
+<tr>
+<td style="text-align: left;">P4</td>
+<td style="text-align: left;">4 strikes</td>
+</tr>
+<tr>
+<td style="text-align: left;">P5</td>
+<td style="text-align: left;">5 strikes</td>
+</tr>
+</tbody>
+</table>
+<p><em>⚠️ [Content Module] — Damage Tier penalties, recovery, and setting-specific consequences are defined in the relevant Content Module.</em></p>
+<hr />
+<h4 id="example-taking-damage-csrpg"><em>Example: Taking Damage (CS:RPG)</em></h4>
+<p>Zero is a P3 character and is caught in a gunfight with no prior damage.</p>
+<ul>
+<li>Zero's P3 tier allows 3 strikes per Damage Tier.</li>
+<li>Zero fails 5 of 7 defensive rolls, taking 5 strikes.</li>
+<li>Hits 1–3: Zero moves from undamaged to Hit. He takes the Hit penalty of a -1 Roll Bonus.</li>
+<li>Hits 4–5: Zero begins filling the Hurt tier. One more strike before Hurt is complete.</li>
+</ul>
+<hr />
+<h3 id="resolving-combat">Resolving Combat</h3>
+<h4 id="ending-the-exchange">Ending the Exchange</h4>
+<p>The Exchange ends when all Attack dice across all combatants have been spent. Defense dice do not end the Exchange. A combatant may have Defense dice remaining when the Exchange closes. Those dice do not carry over.</p>
+<h4 id="resetting-between-exchanges">Resetting Between Exchanges</h4>
+<p>When the Exchange ends, both Dice Pools, Attack and Defense, reset to full for all combatants. A new Standoff begins immediately. All combatants roll their Intuition-based Skill again. A new Edge holder is determined. A new Chain Order is established.</p>
+<p>There is no guarantee that the same combatant holds the Edge in consecutive Exchanges.</p>
+<h4 id="ending-combat">Ending Combat</h4>
+<p>Combat ends when one side is no longer able or willing to continue. This occurs when all combatants on one side have reached the Knocked Out Damage Tier, when a side chooses to disengage, or when the Custodian rules that the fiction has resolved the conflict by other means.</p>
+<p><em>⚠️ [Content Module] — Disengagement mechanics, pursuit, and post-combat consequences are defined in the relevant Content Module.</em></p>
+<h3 id="movement">Movement</h3>
+<h4 id="movement-outside-of-combat">Movement Outside of Combat</h4>
+<p>Outside of tactical situations, movement is open and narrative. Characters travel, explore, and reposition freely without mechanical tracking. The Custodian adjudicates travel time, distance, and difficulty as appropriate to the setting and situation.</p>
+<p>When a situation becomes tactical — combat begins, a chase resolves to a standoff, a stealth operation enters its critical phase — movement shifts to the tracked system described below.</p>
+<h4 id="the-hex-grid">The Hex Grid</h4>
+<p>All tactical movement in Base10 is tracked on a <strong>1-meter hex grid</strong>. Each hex represents a 1-meter space. Only one entity may occupy a hex at a time. Two entities cannot share a hex under any circumstances.</p>
+<p><em>⚠️ [Content Module] — Terrain types, elevation, and movement cost modifiers are defined in the relevant Content Module.</em></p>
+<h4 id="movement-allowance">Movement Allowance</h4>
+<p>Every character has a <strong>Movement Allowance</strong>: the maximum number of hexes they may move in a single turn. Characters may split their Movement Allowance across a turn, moving before and after taking an action. There is no restriction on action type when splitting movement. Any unused movement is lost at the end of the turn and does not carry over.</p>
+<p><em>⚠️ [Content Module] — Movement Allowance values are defined in the relevant Content Module.</em></p>
+<h4 id="range-categories">Range Categories</h4>
+<p>All combat in Base10 uses three range categories. Range determines whether an attack is possible. The specific hex distances that define Point Blank and Long Range are set by individual weapon statistics. Hand-to-Hand range is always one adjacent hex and requires no weapon statistic.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;"><strong>Category</strong></th>
+<th style="text-align: left;"><strong>Definition</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Hand-to-Hand</td>
+<td style="text-align: left;">Attacker and target occupy adjacent hexes</td>
+</tr>
+<tr>
+<td style="text-align: left;">Point Blank</td>
+<td style="text-align: left;">Attacker and target are separated by at least one hex, up to the weapon's Point Blank maximum</td>
+</tr>
+<tr>
+<td style="text-align: left;">Long Range</td>
+<td style="text-align: left;">Any distance beyond Point Blank, up to the weapon's Long Range maximum</td>
+</tr>
+</tbody>
+</table>
+<p>Ranged weapons list both a <strong>Point Blank maximum</strong> and a <strong>Long Range maximum</strong> in their weapon statistics. Attacks made beyond a weapon's Long Range maximum are not possible.</p>
+<p><em>⚠️ [Content Module] — Weapon range statistics, including Point Blank and Long Range maximums, are defined in the relevant Content Module.</em></p>
+<h4 id="long-range-penalty">Long Range Penalty</h4>
+<p>Attacks made at Long Range are harder to land. All Long Range attacks suffer a negative <strong>Roll Bonus</strong> penalty applied to the attacker's dice pool after all rerolls are resolved. This penalty is calculated from the difference between the weapon's Power Tier and the attacker's Power Tier, with a base penalty of −1.</p>
+<p><strong>Long Range Penalty = (Weapon Power Tier − Character Power Tier) + 1</strong></p>
+<p>The penalty has a <strong>floor of −1</strong>. If a character's Power Tier meets or exceeds the weapon's Power Tier, the penalty does not fall below −1. Long Range always carries some inherent difficulty, regardless of the attacker's relative capability.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;"><strong>Weapon Tier vs. Character Tier</strong></th>
+<th style="text-align: left;"><strong>Roll Bonus Penalty</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Character tier meets or exceeds weapon tier</td>
+<td style="text-align: left;">−1 (floor)</td>
+</tr>
+<tr>
+<td style="text-align: left;">Weapon tier 1 above character</td>
+<td style="text-align: left;">−2</td>
+</tr>
+<tr>
+<td style="text-align: left;">Weapon tier 2 above character</td>
+<td style="text-align: left;">−3</td>
+</tr>
+</tbody>
+</table>
+<p>The Long Range penalty applies to the <strong>attacker only</strong>. The defender receives no corresponding modifier from range category alone.</p>
+<hr />
+<h4 id="example-long-range-penalty-csrpg"><em>Example: Long Range Penalty (CS:RPG)</em></h4>
+<p>Zero is a P3 character taking a shot at Long Range with a P5 sniper rifle.</p>
+<ul>
+<li>Weapon Tier (5) − Character Tier (3) + 1 = <strong>−3 Roll Bonus penalty</strong></li>
+<li>Zero rolls his standard Attack dice and resolves all rerolls. After rerolls are complete, −3 is applied to every die in the final pool.</li>
+<li>Had Zero been using a P3 weapon at Long Range, the penalty would floor at <strong>−1</strong> regardless of his tier advantage over the weapon.</li>
+</ul>
+<hr />
+<h3 id="modifiers">Modifiers</h3>
+<p>Characters may gain access to modifiers through <strong>kit items</strong> or <strong>Profession features</strong>. Both sources are mechanically equivalent. Modifier sources and their specific triggers are defined in the relevant content module. Most modifiers apply to Combat rolls only; however, Profession features and kit features may allow Rerolls for Chaos Dice.</p>
+<p>There are three modifier types: <strong>Additional Dice</strong>, <strong>Reroll</strong>, and <strong>Roll Bonus</strong>.</p>
+<h4 id="additional-dice">Additional Dice</h4>
+<p>Additional Dice temporarily expand the character's dice pool for a single roll. The extra dice are rolled alongside the standard pool and participate in the attack/defense comparison normally. Additional Dice apply to Combat rolls only.</p>
+<p>The number of Additional Dice granted is equal to the character's current <strong>Tier Bonus</strong> or the <strong>Power Tier</strong> of the kit item.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Power Tier</th>
+<th style="text-align: left;">Additional Dice Granted</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">P1</td>
+<td style="text-align: left;">+1 die</td>
+</tr>
+<tr>
+<td style="text-align: left;">P2</td>
+<td style="text-align: left;">+2 dice</td>
+</tr>
+<tr>
+<td style="text-align: left;">P3</td>
+<td style="text-align: left;">+3 dice</td>
+</tr>
+<tr>
+<td style="text-align: left;">P4</td>
+<td style="text-align: left;">+4 dice</td>
+</tr>
+<tr>
+<td style="text-align: left;">P5</td>
+<td style="text-align: left;">+5 dice</td>
+</tr>
+</tbody>
+</table>
+<p>Additional Dice do not persist between actions. They are declared and rolled as part of the triggering action, then the pool returns to its standard size.</p>
+<h4 id="reroll">Reroll</h4>
+<p>A Reroll allows the character to re-roll one or more dice from their current pool, including any Additional Dice, before the Roll Bonus is applied. The player selects which dice to reroll after seeing the full pool result. A rolled "0" must always be rerolled before any other dice. The character must accept the result of the reroll; a rerolled die cannot be rerolled a second time unless a separate Reroll source explicitly permits it.</p>
+<p>Rerolls apply to Combat rolls by default. Some Kit items and Profession Features may extend this to Chaos Dice.</p>
+<p>The number of rerolls is equal to the character's current <strong>Tier Bonus</strong> or the <strong>Power Tier</strong> of the kit item.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Power Tier</th>
+<th style="text-align: left;">Number of Rerolls</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">P1</td>
+<td style="text-align: left;">+1</td>
+</tr>
+<tr>
+<td style="text-align: left;">P2</td>
+<td style="text-align: left;">+2</td>
+</tr>
+<tr>
+<td style="text-align: left;">P3</td>
+<td style="text-align: left;">+3</td>
+</tr>
+<tr>
+<td style="text-align: left;">P4</td>
+<td style="text-align: left;">+4</td>
+</tr>
+<tr>
+<td style="text-align: left;">P5</td>
+<td style="text-align: left;">+5</td>
+</tr>
+</tbody>
+</table>
+<h4 id="roll-bonus">Roll Bonus</h4>
+<p>The Roll Bonus adds a flat value to <strong>each individual die</strong> in the final pool after all rerolls are complete. Every die, standard and additional, receives the bonus. This modifier applies to Combat rolls only and can be either positive or negative. When both apply, negative Roll Bonuses are resolved before positive ones.</p>
+<p>The value added is equal to the character's current <strong>Tier Bonus</strong> or the <strong>Power Tier</strong> of the kit item.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Power Tier</th>
+<th style="text-align: left;">Roll Bonus Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">P1</td>
+<td style="text-align: left;">+1</td>
+</tr>
+<tr>
+<td style="text-align: left;">P2</td>
+<td style="text-align: left;">+2</td>
+</tr>
+<tr>
+<td style="text-align: left;">P3</td>
+<td style="text-align: left;">+3</td>
+</tr>
+<tr>
+<td style="text-align: left;">P4</td>
+<td style="text-align: left;">+4</td>
+</tr>
+<tr>
+<td style="text-align: left;">P5</td>
+<td style="text-align: left;">+5</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><strong>Example:</strong> Zero, a P3 character (Roll Bonus +3) rolls a 4, a 3, and a 2. After applying the Roll Bonus, the results become 7, 6, and 5 respectively. These modified values are then used in the attack/defense comparison.</p>
+<hr />
+<h4 id="modifier-caps-and-stacking">Modifier Caps and Stacking</h4>
+<p>Each modifier type has an independent cap equal to the character's <strong>Tier Bonus</strong>. Multiple sources of the same modifier type — whether from kit, Profession features, or both — do not stack beyond this cap.</p>
+<hr />
+<p><strong>Example:</strong> Zero, a P3 character (Tier Bonus +3) has a weapon granting +2 Rerolls and a Profession feature granting +2 Rerolls. The combined total would be +4, but the Tier Bonus cap of +3 applies. The character receives 3 Rerolls.</p>
+<hr />
+<p>Different modifier types do not interfere with each other's caps. A character may simultaneously benefit from the full cap of Additional Dice, Rerolls, and Roll Bonus on the same roll, provided they have qualifying sources for each.</p>
+<h4 id="order-of-operations">Order of Operations</h4>
+<p>When multiple modifier types apply to the same roll, they are resolved in the following sequence:</p>
+<p><strong>1. Additional Dice</strong> — Extra dice are rolled and added to the pool. The full pool — standard and additional — is now available to the player.</p>
+<p><strong>2. Reroll</strong> — The player selects any dice from the full pool to reroll. Final die values are locked after rerolls are resolved.</p>
+<p><strong>3. Roll Bonus</strong> — The flat bonus is added to every die in the final pool individually. These modified values are used for all comparisons.</p>
+<hr />
+<h4 id="example-full-modifier-resolution-csrpg"><em>Example: Full Modifier Resolution (CS:RPG)</em></h4>
+<p>Zero is P3 (Tier Bonus +3) and initiates an attack with 5d10 (standard pool). He has sources granting Additional Dice, 3 Rerolls, and a Roll Bonus.</p>
+<ul>
+<li><strong>Additional Dice:</strong> Zero adds 3 dice, rolling 8d10 total. He sees the full pool result before making any decisions.</li>
+<li><strong>Reroll:</strong> Zero rolls 2 '0's and must reroll those dice. Unhappy with another result, Zero rerolls a 3rd die. He accepts the new results.</li>
+<li><strong>Roll Bonus:</strong> Zero adds +3 to every die in his final pool of 8 after any remaining '0's are removed. A roll of 4 becomes 7, a 3 becomes 6, a 2 becomes 5, and so on. These final values are compared against the defender's dice.</li>
+</ul>
+<hr />
+<h2 id="kit">Kit</h2>
+<p>Kit is the collective term for any item a character carries, wears, or wields that interacts with the dice mechanics of Base10. This includes weapons, armor, and any item that grants a modifier.</p>
+<p>Kit item names, descriptions, availability, cost, and world-specific flavor are all handled by the relevant Content Module. What this section defines is the universal mechanical framework that every kit item, regardless of setting, operates within.</p>
+<p>Three principles govern all kit in Base10:</p>
+<ul>
+<li>Every kit item has its own <strong>Power Tier</strong>, independent of the character carrying it.</li>
+<li>Every mod has its own <strong>Power Tier</strong>, which determines its modifier value and sets the ceiling for which items can accept it.</li>
+<li>A character's Power Tier determines how many of a higher-tier item's slots they can actually use.</li>
+</ul>
+<h3 id="kit-item-power-tiers">Kit Item Power Tiers</h3>
+<p>Kit items follow the same five-tier structure as characters. A P1 item is basic equipment. A P5 item is elite hardware. The Power Tier of a kit item is fixed — it does not change when a higher-tier character equips it.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Power Tier</th>
+<th style="text-align: left;">Mod Slots</th>
+<th style="text-align: left;">Max Mod Tier Accepted</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">P1</td>
+<td style="text-align: left;">1</td>
+<td style="text-align: left;">P1</td>
+</tr>
+<tr>
+<td style="text-align: left;">P2</td>
+<td style="text-align: left;">2</td>
+<td style="text-align: left;">P2</td>
+</tr>
+<tr>
+<td style="text-align: left;">P3</td>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">P3</td>
+</tr>
+<tr>
+<td style="text-align: left;">P4</td>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">P4</td>
+</tr>
+<tr>
+<td style="text-align: left;">P5</td>
+<td style="text-align: left;">5</td>
+<td style="text-align: left;">P5</td>
+</tr>
+</tbody>
+</table>
+<p>The item's Power Tier determines how many slots it has and the highest tier of mod it will accept. A P3 item has 3 slots and cannot accept a mod above P3.</p>
+<p><em>⚠️ [Content Module] — Specific kit item definitions, including names, descriptions, availability, and setting context, are defined in the relevant Content Module.</em></p>
+<h3 id="mod-power-tiers">Mod Power Tiers</h3>
+<p>Mods are independent items with their own Power Tier. The mod's Power Tier determines its modifier value — not the item it is installed in.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Mod Power Tier</th>
+<th style="text-align: left;">Modifier Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">P1</td>
+<td style="text-align: left;">±1</td>
+</tr>
+<tr>
+<td style="text-align: left;">P2</td>
+<td style="text-align: left;">±2</td>
+</tr>
+<tr>
+<td style="text-align: left;">P3</td>
+<td style="text-align: left;">±3</td>
+</tr>
+<tr>
+<td style="text-align: left;">P4</td>
+<td style="text-align: left;">±4</td>
+</tr>
+<tr>
+<td style="text-align: left;">P5</td>
+<td style="text-align: left;">±5</td>
+</tr>
+</tbody>
+</table>
+<p>A P1 Roll Bonus mod installed in a P4 weapon adds +1 to every die — not +4. The weapon's tier is irrelevant to the mod's output. Only the mod's own tier sets the value.</p>
+<p>Mods may be under-tier relative to the item they are installed in. A P2 item can hold a P1 mod with no restriction. It simply delivers P1 modifier value. Mods may not be over-tier relative to the item. A P3 item will not accept a P4 or P5 mod.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Mod Tier</th>
+<th style="text-align: left;">Item Tier</th>
+<th style="text-align: left;">Legal</th>
+<th style="text-align: left;">Modifier Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">P1</td>
+<td style="text-align: left;">P2</td>
+<td style="text-align: left;">✅</td>
+<td style="text-align: left;">P1 value</td>
+</tr>
+<tr>
+<td style="text-align: left;">P2</td>
+<td style="text-align: left;">P2</td>
+<td style="text-align: left;">✅</td>
+<td style="text-align: left;">P2 value</td>
+</tr>
+<tr>
+<td style="text-align: left;">P3</td>
+<td style="text-align: left;">P2</td>
+<td style="text-align: left;">❌</td>
+<td style="text-align: left;">—</td>
+</tr>
+<tr>
+<td style="text-align: left;">P2</td>
+<td style="text-align: left;">P4</td>
+<td style="text-align: left;">✅</td>
+<td style="text-align: left;">P2 value</td>
+</tr>
+<tr>
+<td style="text-align: left;">P4</td>
+<td style="text-align: left;">P4</td>
+<td style="text-align: left;">✅</td>
+<td style="text-align: left;">P4 value</td>
+</tr>
+<tr>
+<td style="text-align: left;">P5</td>
+<td style="text-align: left;">P4</td>
+<td style="text-align: left;">❌</td>
+<td style="text-align: left;">—</td>
+</tr>
+</tbody>
+</table>
+<p><em>⚠️ [Content Module] — Mod availability, acquisition, and cost are defined in the relevant Content Module.</em></p>
+<h3 id="mod-slots">Mod Slots</h3>
+<p>Every kit item has a number of <strong>Mod Slots</strong> equal to its Power Tier. Each slot can hold exactly one mod. A slot can hold any modifier type — there are no typed or restricted slots.</p>
+<h4 id="one-mod-type-per-item">One Mod Type Per Item</h4>
+<p>A single kit item may not have two mods of the same type installed. Regardless of how many slots an item has, each modifier type may appear at most once.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">P4 weapon — 4 slots</th>
+<th style="text-align: left;">Legal</th>
+<th style="text-align: left;">Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Additional Dice + Reroll + Roll Bonus + Damage Bonus</td>
+<td style="text-align: left;">✅</td>
+<td style="text-align: left;">All four types, one each</td>
+</tr>
+<tr>
+<td style="text-align: left;">Additional Dice + Reroll + Reroll + Damage Bonus</td>
+<td style="text-align: left;">❌</td>
+<td style="text-align: left;">Reroll appears twice</td>
+</tr>
+</tbody>
+</table>
+<p>This restriction applies per item. A character may benefit from the same modifier type across multiple equipped items, subject to the stacking caps defined in the Modifiers section.</p>
+<h4 id="hardwired-mods">Hardwired Mods</h4>
+<p>Some kit items come with one or more mods permanently built in. These are <strong>Hardwired</strong> mods. They cannot be removed, swapped, or overwritten under any circumstances.</p>
+<p>Hardwired mods occupy a mod slot like any other mod and count toward the one-mod-type-per-item restriction. If an item has a hardwired Reroll mod, no second Reroll mod may be installed in any of its remaining slots.</p>
+<p><em>⚠️ [Content Module] — Which items carry hardwired mods, and what those mods are, is defined in the relevant Content Module.</em></p>
+<hr />
+<h4 id="example-hardwired-mod-csrpg"><em>Example: Hardwired Mod (CS:RPG)</em></h4>
+<p>Zero has a P3 combat knife has a hardwired P3 Damage Bonus mod built into slot 1. It has 3 total slots. Slots 2 and 3 are open for player-installed mods of P1, P2, or P3 tier. The player may install Additional Dice and Roll Bonus in those slots, but may not install a second Damage Bonus — the type is already occupied by the hardwired mod.</p>
+<hr />
+<h4 id="uninstalled-slots">Uninstalled Slots</h4>
+<p>Mod slots do not need to be filled. An item with empty slots is fully functional. It simply provides no modifier from those slots. Slots may be filled, changed, or upgraded as defined in the relevant Content Module.</p>
+<h3 id="kit-modifier-types">Kit Modifier Types</h3>
+<p>Five Kit modifier types are listed below. Additional Dice, Reroll, and Roll Bonus function as defined in the Modifiers section of Combat; kit-specific clarifications are noted here. Damage Bonus and Armor Penetration are kit-level modifiers with no Combat equivalent and cannot be granted by Profession features.</p>
+<p><em>⚠️ [Content Module] — Additional Kit Modifiers could be defined in the relevant Content Module.</em></p>
+<h4 id="additional-dice_1">Additional Dice</h4>
+<p>Temporarily expands the character's dice pool for a single attack roll. The number of additional dice is equal to the <strong>mod's</strong> Power Tier. Applies to combat rolls only.</p>
+<h4 id="reroll_1">Reroll</h4>
+<p>Allows the character to reroll a number of dice equal to the <strong>mod's</strong> Power Tier before the Roll Bonus is applied. Applies to combat rolls by default; a Content Module may extend this to Chaos Rolls.</p>
+<h4 id="roll-bonus_1">Roll Bonus</h4>
+<p>Adds a flat value to every die in the final pool after all rerolls are resolved. The bonus value is equal to the <strong>mod's</strong> Power Tier. Can be positive or negative. Applies to combat rolls only.</p>
+<p>A negative Roll Bonus is a penalty mod, and follows the same resolution rules as all Roll Bonuses.</p>
+<h4 id="damage-bonus">Damage Bonus</h4>
+<p>Adds a number of bonus strikes equal to the <strong>mod's</strong> Power Tier <strong>after</strong> the attack and defense comparison is resolved. Bonus strikes are only applied if at least one strike lands from the comparison. A total miss — zero strikes from the comparison — produces zero bonus strikes regardless of this mod.</p>
+<p>Damage Bonus is applied after comparison, before armor mitigation is calculated.</p>
+<p><em>⚠️ Note: Damage Bonus is a kit-level modifier only. It is not granted by character Profession features and does not interact with the Tier Bonus cap system that governs Additional Dice, Reroll, and Roll Bonus.</em></p>
+<hr />
+<h4 id="example-damage-bonus-csrpg"><em>Example: Damage Bonus (CS:RPG)</em></h4>
+<p>Zero attacks with a P3 weapon that has a Damage Bonus mod installed. The comparison resolves and 2 strikes land. The Damage Bonus adds +3 strikes. Zero deals 5 total strikes this attack. If the comparison had produced zero strikes, the Damage Bonus would not apply.</p>
+<hr />
+<h4 id="armor-penetration">Armor Penetration</h4>
+<p>Armor absorbs strikes. Armor Penetration (AP) forces some of those strikes through anyway.</p>
+<p>When an attack lands and the target's armor would normally absorb strikes, an AP mod on the attacking weapon reduces how many strikes the armor can stop. The number of strikes the armor absorbs is reduced by the AP mod's Power Tier.</p>
+<p><strong>Effective Mitigation = Armor Power Tier − AP Mod Power Tier, minimum 0</strong></p>
+<p>If the AP mod's Power Tier meets or exceeds the target's armor Power Tier, the armor's passive mitigation is completely nullified — every strike that landed gets through. Any defense roll modifiers the armor provides still apply normally during the comparison. AP only reduces passive strike absorption at the end of resolution.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">AP Mod Tier</th>
+<th style="text-align: left;">Target Armor Tier</th>
+<th style="text-align: left;">Strikes Armor Absorbs</th>
+<th style="text-align: left;">Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">P1</td>
+<td style="text-align: left;">P1</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">Armor nullified</td>
+</tr>
+<tr>
+<td style="text-align: left;">P1</td>
+<td style="text-align: left;">P2</td>
+<td style="text-align: left;">1</td>
+<td style="text-align: left;">1 strike still absorbed</td>
+</tr>
+<tr>
+<td style="text-align: left;">P1</td>
+<td style="text-align: left;">P3</td>
+<td style="text-align: left;">2</td>
+<td style="text-align: left;">2 strikes still absorbed</td>
+</tr>
+<tr>
+<td style="text-align: left;">P2</td>
+<td style="text-align: left;">P2</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">Armor nullified</td>
+</tr>
+<tr>
+<td style="text-align: left;">P2</td>
+<td style="text-align: left;">P3</td>
+<td style="text-align: left;">1</td>
+<td style="text-align: left;">1 strike still absorbed</td>
+</tr>
+<tr>
+<td style="text-align: left;">P3</td>
+<td style="text-align: left;">P3</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">Armor nullified</td>
+</tr>
+<tr>
+<td style="text-align: left;">P3</td>
+<td style="text-align: left;">P5</td>
+<td style="text-align: left;">2</td>
+<td style="text-align: left;">2 strikes still absorbed</td>
+</tr>
+<tr>
+<td style="text-align: left;">P5</td>
+<td style="text-align: left;">Any</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">Armor nullified</td>
+</tr>
+</tbody>
+</table>
+<p><em>⚠️ Note: Armor Penetration is a kit-level modifier only. It is not granted by character Profession features.</em></p>
+<hr />
+<h4 id="example-armor-penetration-csrpg"><em>Example: Armor Penetration (CS:RPG)</em></h4>
+<p>Zero fires a P3 weapon with a P3 AP mod at a target wearing P2 armor. The comparison resolves and 3 strikes land. Without AP, the P2 armor would absorb 2 of those strikes. With the P3 AP mod, mitigation is reduced to zero, all 3 strikes get through.</p>
+<p>Against a target in P4 armor: without AP, the armor absorbs 4 strikes. With the P3 AP mod, mitigation is reduced to 1. Two of the three strikes get through.</p>
+<hr />
+<h3 id="equipping-higher-tier-kit">Equipping Higher-Tier Kit</h3>
+<p>Characters may equip kit items of any Power Tier. However, a character can only use a number of mod slots equal to their own <strong>Power Tier</strong>. Slots beyond that number are present on the item but inaccessible until the character advances to the required tier.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Character Tier</th>
+<th style="text-align: left;">Item Tier</th>
+<th style="text-align: left;">Item Slots</th>
+<th style="text-align: left;">Accessible Slots</th>
+<th style="text-align: left;">Locked Slots</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">P1</td>
+<td style="text-align: left;">P3</td>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">1</td>
+<td style="text-align: left;">2</td>
+</tr>
+<tr>
+<td style="text-align: left;">P2</td>
+<td style="text-align: left;">P4</td>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">2</td>
+<td style="text-align: left;">2</td>
+</tr>
+<tr>
+<td style="text-align: left;">P3</td>
+<td style="text-align: left;">P5</td>
+<td style="text-align: left;">5</td>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">2</td>
+</tr>
+<tr>
+<td style="text-align: left;">P4</td>
+<td style="text-align: left;">P5</td>
+<td style="text-align: left;">5</td>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">1</td>
+</tr>
+<tr>
+<td style="text-align: left;">P5</td>
+<td style="text-align: left;">P5</td>
+<td style="text-align: left;">5</td>
+<td style="text-align: left;">5</td>
+<td style="text-align: left;">0</td>
+</tr>
+</tbody>
+</table>
+<h4 id="locked-slots">Locked Slots</h4>
+<p>Locked slots are not lost. They become available as the character advances. A P1 character equipping a P3 weapon has 1 accessible slot now, and gains access to the remaining 2 slots when they reach P2 and P3 respectively.</p>
+<p>Mods may be installed in locked slots in advance, at the Custodian's discretion, but they produce no effect until the slot unlocks.</p>
+<h4 id="modifier-value-from-higher-tier-items">Modifier Value from Higher-Tier Items</h4>
+<p>When a character uses a mod on a higher-tier item, the modifier value is always set by the <strong>mod's own Power Tier</strong>, not the item's. Higher-tier kit is more powerful: a P2 character who finds a P4 weapon gets two tiered mod slot, not a full P4 loadout.</p>
+<hr />
+<h4 id="example-under-tier-equip-csrpg"><em>Example: Under-Tier Equip (CS:RPG)</em></h4>
+<p>Zero is P2 and picks up a P4 sniper rifle with 4 slots. Zero can fill 2 slots. He installs a P4 Roll Bonus mod and a P4 Reroll mod, both legal since neither exceeds the item's P4 tier. However both apply at P2 value: +2 Roll Bonus and 2 Rerolls due to Zero's personal Power Level. The remaining 2 slots are locked until Zero reaches P3 and P4.</p>
+<hr />
+<h3 id="armor">Armor</h3>
+<p>Armor occupies the <strong>Chest</strong> carry slot. It is the only kit item type that provides a passive mechanical effect independent of its mod slots.</p>
+<h4 id="passive-effect--strike-mitigation">Passive Effect — Strike Mitigation</h4>
+<p>After everything else resolves, the comparison, any Damage Bonus, armor absorbs a number of strikes equal to its Power Tier. Those strikes do not apply to the wearer. Strike mitigation cannot reduce incoming strikes below zero.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Armor Power Tier</th>
+<th style="text-align: left;">Strikes Absorbed Per Attack</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">P1</td>
+<td style="text-align: left;">1 strike</td>
+</tr>
+<tr>
+<td style="text-align: left;">P2</td>
+<td style="text-align: left;">2 strikes</td>
+</tr>
+<tr>
+<td style="text-align: left;">P3</td>
+<td style="text-align: left;">3 strikes</td>
+</tr>
+<tr>
+<td style="text-align: left;">P4</td>
+<td style="text-align: left;">4 strikes</td>
+</tr>
+<tr>
+<td style="text-align: left;">P5</td>
+<td style="text-align: left;">5 strikes</td>
+</tr>
+</tbody>
+</table>
+<h4 id="armor-mod-slots">Armor Mod Slots</h4>
+<p>In addition to its passive mitigation, armor has mod slots equal to its Power Tier, following all standard mod slot rules. Armor mods apply to <strong>defense rolls</strong>, not attack rolls.</p>
+<p>The same modifier types are available: Additional Dice, Reroll, Roll Bonus, and Damage Bonus. In the context of armor, Damage Bonus represents thorns or retaliation effects — its application in those cases is defined in the relevant Content Module.</p>
+<hr />
+<h4 id="example-armor-in-play-csrpg"><em>Example: Armor in Play (CS:RPG)</em></h4>
+<p>Zero is wearing P2 armor. An attacker's comparison produces 4 strikes after all modifiers resolve. Zero's armor absorbs 2 of those strikes. Zero takes 2 strikes. Zero's P2 armor also has 2 mod slots. He has installed a Reroll mod, allowing him to reroll up to 2 dice on defense rolls.</p>
+<hr />
+<h3 id="weapons">Weapons</h3>
+<p>Weapons are kit items used to make attacks. Every weapon has a Power Tier, a set of mod slots, and a range profile. Mod slots on weapons apply to <strong>attack rolls</strong>.</p>
+<h4 id="weapon-slots">Weapon Slots</h4>
+<p>Characters have three dedicated weapon slots, separate from carry slots:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Weapon Slot</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Primary</td>
+<td style="text-align: left;">Main weapon — typically the largest or most capable</td>
+</tr>
+<tr>
+<td style="text-align: left;">Secondary</td>
+<td style="text-align: left;">Sidearm or backup offensive option</td>
+</tr>
+<tr>
+<td style="text-align: left;">Backup</td>
+<td style="text-align: left;">Last-resort weapon — typically P1 or P2</td>
+</tr>
+</tbody>
+</table>
+<p>These three slots exist outside the carry slot system. A character's carry capacity is not reduced by equipping weapons.</p>
+<h4 id="range-profiles">Range Profiles</h4>
+<p>Every weapon has a range profile defining its Point Blank and Long Range maximums in hexes. Hand-to-Hand weapons have no range profile — they function only in adjacent hexes.</p>
+<p>The Long Range penalty from the Movement section applies to all ranged weapons:</p>
+<p><strong>Long Range Penalty = (Weapon Power Tier − Character Power Tier) + 1, minimum −1</strong></p>
+<p><em>⚠️ [Content Module] — Specific weapon definitions including range profiles, descriptions, and setting context are defined in the relevant Content Module.</em></p>
+<h3 id="carry-capacity">Carry Capacity</h3>
+<p>Characters have a base set of <strong>Carry Slots</strong> representing what they can reasonably have on their person. These slots are separate from weapon slots.</p>
+<h4 id="base-carry-slots">Base Carry Slots</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Slot</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Chest</td>
+<td style="text-align: left;">Armor only</td>
+</tr>
+<tr>
+<td style="text-align: left;">Right Pocket</td>
+<td style="text-align: left;">1 carry item</td>
+</tr>
+<tr>
+<td style="text-align: left;">Left Pocket</td>
+<td style="text-align: left;">1 carry item</td>
+</tr>
+<tr>
+<td style="text-align: left;">Back</td>
+<td style="text-align: left;">Backpack or large item</td>
+</tr>
+</tbody>
+</table>
+<p>The Back slot holds a backpack or equivalent carry item. Backpacks add additional carry slots and do not have Power Tiers or mod slots — they are purely functional carry expansion.</p>
+<p>Weapons do not occupy carry slots. Kit items that are not weapons and not armor — consumables, tools, equipment — occupy carry slots. How many slots a given item requires is defined in the relevant Content Module.</p>
+<p><em>⚠️ [Content Module] — Backpack capacities, pocket item restrictions, and carry weight rules are defined in the relevant Content Module.</em></p>
+<hr />
+<h2 id="appendix">Appendix</h2>
+<h3 id="quick-reference">Quick Reference</h3>
+<h4 id="attributes_1">Attributes</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;"><strong>Full Name</strong></th>
+<th style="text-align: left;"><strong>Abbreviation</strong></th>
+<th style="text-align: left;"><strong>Description</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Curiosity</td>
+<td style="text-align: left;">Cu</td>
+<td style="text-align: left;">The drive to explore, question, and discover</td>
+</tr>
+<tr>
+<td style="text-align: left;">Empathy</td>
+<td style="text-align: left;">Em</td>
+<td style="text-align: left;">The capacity to understand and connect with others</td>
+</tr>
+<tr>
+<td style="text-align: left;">Focus</td>
+<td style="text-align: left;">Fo</td>
+<td style="text-align: left;">Sustained attention, precision, and mental discipline</td>
+</tr>
+<tr>
+<td style="text-align: left;">Conditioning</td>
+<td style="text-align: left;">Cn</td>
+<td style="text-align: left;">Physical and mental readiness; trained capacity to perform</td>
+</tr>
+<tr>
+<td style="text-align: left;">Intuition</td>
+<td style="text-align: left;">In</td>
+<td style="text-align: left;">Instinctive situational awareness; reading what isn't said</td>
+</tr>
+<tr>
+<td style="text-align: left;">Versatility</td>
+<td style="text-align: left;">Ve</td>
+<td style="text-align: left;">Adaptability; drawing on a wide range of experience</td>
+</tr>
+<tr>
+<td style="text-align: left;">Will</td>
+<td style="text-align: left;">Wi</td>
+<td style="text-align: left;">Inner resolve, determination, and mental endurance</td>
+</tr>
+</tbody>
+</table>
+<h4 id="attribute-modifiers_1">Attribute Modifiers</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;"><strong>Score</strong></th>
+<th style="text-align: left;"><strong>Modifier</strong></th>
+<th style="text-align: left;"></th>
+<th style="text-align: left;"><strong>Score</strong></th>
+<th style="text-align: left;"><strong>Modifier</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">9</td>
+<td style="text-align: left;">+4%</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">0%</td>
+</tr>
+<tr>
+<td style="text-align: left;">8</td>
+<td style="text-align: left;">+3%</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">−1%</td>
+</tr>
+<tr>
+<td style="text-align: left;">7</td>
+<td style="text-align: left;">+2%</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">2</td>
+<td style="text-align: left;">−2%</td>
+</tr>
+<tr>
+<td style="text-align: left;">6</td>
+<td style="text-align: left;">+1%</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">1</td>
+<td style="text-align: left;">−3%</td>
+</tr>
+<tr>
+<td style="text-align: left;">5</td>
+<td style="text-align: left;">0%</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">−4%</td>
+</tr>
+</tbody>
+</table>
+<h4 id="advancement-points-by-level">Advancement Points by Level</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Level</th>
+<th style="text-align: left;">Points Gained</th>
+<th style="text-align: left;">Cumulative Total</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">3</td>
+</tr>
+<tr>
+<td style="text-align: left;">1</td>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">6</td>
+</tr>
+<tr>
+<td style="text-align: left;">2</td>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">9</td>
+</tr>
+<tr>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">12</td>
+</tr>
+<tr>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">16</td>
+</tr>
+<tr>
+<td style="text-align: left;">5</td>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">20</td>
+</tr>
+<tr>
+<td style="text-align: left;">6</td>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">24</td>
+</tr>
+<tr>
+<td style="text-align: left;">7</td>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">28</td>
+</tr>
+<tr>
+<td style="text-align: left;">8</td>
+<td style="text-align: left;">5</td>
+<td style="text-align: left;">33</td>
+</tr>
+<tr>
+<td style="text-align: left;">9</td>
+<td style="text-align: left;">5</td>
+<td style="text-align: left;">38</td>
+</tr>
+</tbody>
+</table>
+<h4 id="power-tier-summary">Power Tier Summary</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Power Tier</th>
+<th style="text-align: left;">Levels</th>
+<th style="text-align: left;">Tier Bonus</th>
+<th style="text-align: left;">Dice Pool</th>
+<th style="text-align: left;">Strikes/Tier</th>
+<th style="text-align: left;">Add. Dice</th>
+<th style="text-align: left;">Roll Bonus</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">P1</td>
+<td style="text-align: left;">0–1</td>
+<td style="text-align: left;">+1</td>
+<td style="text-align: left;">1–2d10</td>
+<td style="text-align: left;">1</td>
+<td style="text-align: left;">+1</td>
+<td style="text-align: left;">+1</td>
+</tr>
+<tr>
+<td style="text-align: left;">P2</td>
+<td style="text-align: left;">2–3</td>
+<td style="text-align: left;">+2</td>
+<td style="text-align: left;">3–4d10</td>
+<td style="text-align: left;">2</td>
+<td style="text-align: left;">+2</td>
+<td style="text-align: left;">+2</td>
+</tr>
+<tr>
+<td style="text-align: left;">P3</td>
+<td style="text-align: left;">4–5</td>
+<td style="text-align: left;">+3</td>
+<td style="text-align: left;">5–6d10</td>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">+3</td>
+<td style="text-align: left;">+3</td>
+</tr>
+<tr>
+<td style="text-align: left;">P4</td>
+<td style="text-align: left;">6–7</td>
+<td style="text-align: left;">+4</td>
+<td style="text-align: left;">7–8d10</td>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">+4</td>
+<td style="text-align: left;">+4</td>
+</tr>
+<tr>
+<td style="text-align: left;">P5</td>
+<td style="text-align: left;">8–9</td>
+<td style="text-align: left;">+5</td>
+<td style="text-align: left;">9–10d10</td>
+<td style="text-align: left;">5</td>
+<td style="text-align: left;">+5</td>
+<td style="text-align: left;">+5</td>
+</tr>
+</tbody>
+</table>
+<h4 id="combat-tier_1">Combat Tier</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Combat Tier</th>
+<th style="text-align: left;">Power Tier</th>
+<th style="text-align: left;">AP Gained This Tier</th>
+<th style="text-align: left;">CT Cost</th>
+<th style="text-align: left;">Cumulative AP</th>
+<th style="text-align: left;">Cumulative CT Spent</th>
+<th style="text-align: left;">AP Remaining</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">CT1</td>
+<td style="text-align: left;">P1</td>
+<td style="text-align: left;">6</td>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">6</td>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">3</td>
+</tr>
+<tr>
+<td style="text-align: left;">CT2</td>
+<td style="text-align: left;">P2</td>
+<td style="text-align: left;">6</td>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">12</td>
+<td style="text-align: left;">6</td>
+<td style="text-align: left;">6</td>
+</tr>
+<tr>
+<td style="text-align: left;">CT3</td>
+<td style="text-align: left;">P3</td>
+<td style="text-align: left;">8</td>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">20</td>
+<td style="text-align: left;">10</td>
+<td style="text-align: left;">10</td>
+</tr>
+<tr>
+<td style="text-align: left;">CT4</td>
+<td style="text-align: left;">P4</td>
+<td style="text-align: left;">8</td>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">28</td>
+<td style="text-align: left;">14</td>
+<td style="text-align: left;">14</td>
+</tr>
+<tr>
+<td style="text-align: left;">CT5</td>
+<td style="text-align: left;">P5</td>
+<td style="text-align: left;">10</td>
+<td style="text-align: left;">5</td>
+<td style="text-align: left;">38</td>
+<td style="text-align: left;">19</td>
+<td style="text-align: left;">19</td>
+</tr>
+</tbody>
+</table>
+<p><em>CT Cost is always half the AP gained that Power Tier. A character who advances Combat Tier at every opportunity spends exactly half their lifetime AP budget — 19 of 38 — on Combat Tier, leaving 19 AP for Skills and Attributes.</em></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Modifier Type</th>
+<th style="text-align: left;">Value</th>
+<th style="text-align: left;">Cap</th>
+<th style="text-align: left;">Applies To</th>
+<th style="text-align: left;">Always On</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Additional Dice</td>
+<td style="text-align: left;">Times chosen</td>
+<td style="text-align: left;">+5 (CT5)</td>
+<td style="text-align: left;">All combat rolls</td>
+<td style="text-align: left;">Yes</td>
+</tr>
+<tr>
+<td style="text-align: left;">Reroll</td>
+<td style="text-align: left;">Times chosen</td>
+<td style="text-align: left;">+5 (CT5)</td>
+<td style="text-align: left;">All combat rolls</td>
+<td style="text-align: left;">Yes</td>
+</tr>
+<tr>
+<td style="text-align: left;">Roll Bonus</td>
+<td style="text-align: left;">Times chosen</td>
+<td style="text-align: left;">+5 (CT5)</td>
+<td style="text-align: left;">All combat rolls</td>
+<td style="text-align: left;">Yes</td>
+</tr>
+</tbody>
+</table>
+<p><em>Combat Tier modifiers are cap-exempt. They do not count toward and are not subject to the Tier Bonus cap governing Kit and Profession Features. One advancement per Power Tier. One modifier type chosen per advancement.</em></p>
+<h4 id="skill-roll-components">Skill Roll Components</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Component</th>
+<th style="text-align: left;">Formula</th>
+<th style="text-align: left;">Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Skill Bonus</td>
+<td style="text-align: left;">Slot Level × 10%</td>
+<td style="text-align: left;">Level 5 → 50%</td>
+</tr>
+<tr>
+<td style="text-align: left;">Attribute Bonus (active slot)</td>
+<td style="text-align: left;">Both paired Attribute modifiers combined</td>
+<td style="text-align: left;">+3 + +4 = +7%</td>
+</tr>
+<tr>
+<td style="text-align: left;">Attribute Bonus (inactive slot)</td>
+<td style="text-align: left;">One paired Attribute modifier only</td>
+<td style="text-align: left;">+3%</td>
+</tr>
+<tr>
+<td style="text-align: left;">Base Skill</td>
+<td style="text-align: left;">Skill Bonus + Attribute Bonus</td>
+<td style="text-align: left;">50% + 7% = 57%</td>
+</tr>
+<tr>
+<td style="text-align: left;">Chaos Bonus</td>
+<td style="text-align: left;">Attribute Bonus + Slot Level</td>
+<td style="text-align: left;">+7 + 5 = +12</td>
+</tr>
+</tbody>
+</table>
+<h4 id="skill-slot-level--chaos-bonus-at-a-glance">Skill Slot Level — Chaos Bonus at a Glance</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Slot Level</th>
+<th style="text-align: left;">Skill Bonus</th>
+<th style="text-align: left;">Chaos Bonus (AB +4)</th>
+<th style="text-align: left;">Chaos Bonus (AB +7)</th>
+<th style="text-align: left;">Chaos Bonus (AB +0)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">0 (active)</td>
+<td style="text-align: left;">0%</td>
+<td style="text-align: left;">+4</td>
+<td style="text-align: left;">+7</td>
+<td style="text-align: left;">+0</td>
+</tr>
+<tr>
+<td style="text-align: left;">1</td>
+<td style="text-align: left;">10%</td>
+<td style="text-align: left;">+5</td>
+<td style="text-align: left;">+8</td>
+<td style="text-align: left;">+1</td>
+</tr>
+<tr>
+<td style="text-align: left;">2</td>
+<td style="text-align: left;">20%</td>
+<td style="text-align: left;">+6</td>
+<td style="text-align: left;">+9</td>
+<td style="text-align: left;">+2</td>
+</tr>
+<tr>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">30%</td>
+<td style="text-align: left;">+7</td>
+<td style="text-align: left;">+10</td>
+<td style="text-align: left;">+3</td>
+</tr>
+<tr>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">40%</td>
+<td style="text-align: left;">+8</td>
+<td style="text-align: left;">+11</td>
+<td style="text-align: left;">+4</td>
+</tr>
+<tr>
+<td style="text-align: left;">5</td>
+<td style="text-align: left;">50%</td>
+<td style="text-align: left;">+9</td>
+<td style="text-align: left;">+12</td>
+<td style="text-align: left;">+5</td>
+</tr>
+<tr>
+<td style="text-align: left;">6</td>
+<td style="text-align: left;">60%</td>
+<td style="text-align: left;">+10</td>
+<td style="text-align: left;">+13</td>
+<td style="text-align: left;">+6</td>
+</tr>
+<tr>
+<td style="text-align: left;">7</td>
+<td style="text-align: left;">70%</td>
+<td style="text-align: left;">+11</td>
+<td style="text-align: left;">+14</td>
+<td style="text-align: left;">+7</td>
+</tr>
+<tr>
+<td style="text-align: left;">8</td>
+<td style="text-align: left;">80%</td>
+<td style="text-align: left;">+12</td>
+<td style="text-align: left;">+15</td>
+<td style="text-align: left;">+8</td>
+</tr>
+<tr>
+<td style="text-align: left;">9</td>
+<td style="text-align: left;">90%</td>
+<td style="text-align: left;">+13</td>
+<td style="text-align: left;">+16</td>
+<td style="text-align: left;">+9</td>
+</tr>
+</tbody>
+</table>
+<p><em>Chaos Bonus columns shown for three common Attribute Bonus (AB) totals. Add Slot Level to your own Attribute Bonus for any other value.</em></p>
+<h4 id="skill-tier-summary">Skill Tier Summary</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;"><strong>Tier</strong></th>
+<th style="text-align: left;"><strong>Skill Count</strong></th>
+<th style="text-align: left;"><strong>Attribute Appearances</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Core</td>
+<td style="text-align: left;">7</td>
+<td style="text-align: left;">2 per Attribute</td>
+</tr>
+<tr>
+<td style="text-align: left;">Standard</td>
+<td style="text-align: left;">14</td>
+<td style="text-align: left;">4 per Attribute</td>
+</tr>
+<tr>
+<td style="text-align: left;">Complete</td>
+<td style="text-align: left;">21</td>
+<td style="text-align: left;">6 per Attribute</td>
+</tr>
+</tbody>
+</table>
+<h4 id="full-skill-slot-reference--all-21-slots">Full Skill Slot Reference — All 21 Slots</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;"><strong>Slot</strong></th>
+<th style="text-align: left;"><strong>Pair</strong></th>
+<th style="text-align: left;"></th>
+<th style="text-align: left;"><strong>Slot</strong></th>
+<th style="text-align: left;"><strong>Pair</strong></th>
+<th style="text-align: left;"></th>
+<th style="text-align: left;"><strong>Slot</strong></th>
+<th style="text-align: left;"><strong>Pair</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">1</td>
+<td style="text-align: left;">Cu – Em</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">8</td>
+<td style="text-align: left;">Cu – In</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">15</td>
+<td style="text-align: left;">Em – Fo</td>
+</tr>
+<tr>
+<td style="text-align: left;">2</td>
+<td style="text-align: left;">Cu – Fo</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">9</td>
+<td style="text-align: left;">Cu – Ve</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">16</td>
+<td style="text-align: left;">Em – Cn</td>
+</tr>
+<tr>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">Em – In</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">10</td>
+<td style="text-align: left;">Em – Ve</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">17</td>
+<td style="text-align: left;">Cu – Cn</td>
+</tr>
+<tr>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">Fo – In</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">11</td>
+<td style="text-align: left;">Em – Wi</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">18</td>
+<td style="text-align: left;">Cu – Wi</td>
+</tr>
+<tr>
+<td style="text-align: left;">5</td>
+<td style="text-align: left;">Cn – Ve</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">12</td>
+<td style="text-align: left;">Fo – Cn</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">19</td>
+<td style="text-align: left;">Cn – In</td>
+</tr>
+<tr>
+<td style="text-align: left;">6</td>
+<td style="text-align: left;">Cn – Wi</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">13</td>
+<td style="text-align: left;">Fo – Ve</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">20</td>
+<td style="text-align: left;">In – Ve</td>
+</tr>
+<tr>
+<td style="text-align: left;">7</td>
+<td style="text-align: left;">Ve – Wi</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">14</td>
+<td style="text-align: left;">Fo – Wi</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">21</td>
+<td style="text-align: left;">In – Wi</td>
+</tr>
+</tbody>
+</table>
+<h4 id="combat-flow-summary">Combat Flow Summary</h4>
+<pre><code>STANDOFF
+├── All combatants roll Intuition-based Skill (Chaos Roll)
+├── Results ranked highest to lowest to determine Chain Order
+├── Highest result = Edge holder
+│   └── Edge holder chooses modifier: Reroll OR Roll Bonus (Tier Bonus scaled)
+│   └── Modifier stays with Edge holder until their first action
+└── Cascade down Chain Order until someone acts → Exchange begins
+
+EXCHANGE
+├── Opener commits 1+ Attack dice against a valid target
+├── Target reacts immediately; commits Defense dice; may counter-attack
+├── Counter-attack target reacts in turn; chain extends
+├── Chain breaks when no reactions or counter-attacks are pending
+├── Resolution happens, then Chain Order resumes
+└── Exchange ends → both dice pools reset → new Standoff begins
+</code></pre>
+<h4 id="edge-modifier-summary">Edge Modifier Summary</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Modifier</th>
+<th style="text-align: left;">Scales To</th>
+<th style="text-align: left;">Applied When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Reroll</td>
+<td style="text-align: left;">Tier Bonus</td>
+<td style="text-align: left;">Before Roll Bonus, on first action</td>
+</tr>
+<tr>
+<td style="text-align: left;">Roll Bonus</td>
+<td style="text-align: left;">Tier Bonus</td>
+<td style="text-align: left;">After Rerolls, on first action</td>
+</tr>
+</tbody>
+</table>
+<h4 id="standoff-cascade-summary">Standoff Cascade Summary</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Standoff Result</th>
+<th style="text-align: left;">First Action Rights</th>
+<th style="text-align: left;">Modifier</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Highest (Edge holder)</td>
+<td style="text-align: left;">Yes, may act or pass</td>
+<td style="text-align: left;">Yes, Reroll or Roll Bonus</td>
+</tr>
+<tr>
+<td style="text-align: left;">2nd highest</td>
+<td style="text-align: left;">Only if Edge holder passes</td>
+<td style="text-align: left;">None</td>
+</tr>
+<tr>
+<td style="text-align: left;">3rd highest and below</td>
+<td style="text-align: left;">Only if all above pass</td>
+<td style="text-align: left;">None</td>
+</tr>
+<tr>
+<td style="text-align: left;">No one acts</td>
+<td style="text-align: left;">No combat occurs</td>
+<td style="text-align: left;">None</td>
+</tr>
+</tbody>
+</table>
+<h4 id="chain-order-rules">Chain Order Rules</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Situation</th>
+<th style="text-align: left;">Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Reaction to an incoming attack</td>
+<td style="text-align: left;">Immediate — Defense dice committed now</td>
+</tr>
+<tr>
+<td style="text-align: left;">Counter-attack after reacting</td>
+<td style="text-align: left;">Immediate — extends the reaction chain</td>
+</tr>
+<tr>
+<td style="text-align: left;">Reaction chain breaks</td>
+<td style="text-align: left;">Chain Order resumes</td>
+</tr>
+<tr>
+<td style="text-align: left;">Combatant with no Attack dice remaining</td>
+<td style="text-align: left;">Skipped in chain; Defense still active</td>
+</tr>
+<tr>
+<td style="text-align: left;">Combatant choosing to pass</td>
+<td style="text-align: left;">Skipped this cycle; Attack dice retained</td>
+</tr>
+<tr>
+<td style="text-align: left;">Combatant using a Skill</td>
+<td style="text-align: left;">Both pools forfeited for the Exchange; valid target with no Defense</td>
+</tr>
+</tbody>
+</table>
+<h4 id="range-categories_1">Range Categories</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;"><strong>Category</strong></th>
+<th style="text-align: left;"><strong>Definition</strong></th>
+<th style="text-align: left;"><strong>Range Maximum</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Hand-to-Hand</td>
+<td style="text-align: left;">Adjacent hex</td>
+<td style="text-align: left;">Fixed — 1 hex</td>
+</tr>
+<tr>
+<td style="text-align: left;">Point Blank</td>
+<td style="text-align: left;">At least 1 hex separation</td>
+<td style="text-align: left;">Defined by weapon statistics</td>
+</tr>
+<tr>
+<td style="text-align: left;">Long Range</td>
+<td style="text-align: left;">Beyond Point Blank</td>
+<td style="text-align: left;">Defined by weapon statistics</td>
+</tr>
+</tbody>
+</table>
+<h4 id="long-range-penalty_1">Long Range Penalty</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;"><strong>Weapon Tier vs. Character Tier</strong></th>
+<th style="text-align: left;"><strong>Roll Bonus Penalty</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Character tier meets or exceeds weapon tier</td>
+<td style="text-align: left;">−1 (floor)</td>
+</tr>
+<tr>
+<td style="text-align: left;">Weapon tier 1 above character</td>
+<td style="text-align: left;">−2</td>
+</tr>
+<tr>
+<td style="text-align: left;">Weapon tier 2 above character</td>
+<td style="text-align: left;">−3</td>
+</tr>
+<tr>
+<td style="text-align: left;">Weapon tier 3 above character</td>
+<td style="text-align: left;">−4</td>
+</tr>
+<tr>
+<td style="text-align: left;">Weapon tier 4 above character</td>
+<td style="text-align: left;">−5</td>
+</tr>
+</tbody>
+</table>
+<p><em>Formula: (Weapon Power Tier − Character Power Tier) + 1. Minimum penalty: −1.</em></p>
+<h4 id="modifier-order-of-operations">Modifier Order of Operations</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Step</th>
+<th style="text-align: left;">Modifier</th>
+<th style="text-align: left;">Applies To</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">1</td>
+<td style="text-align: left;">Additional Dice</td>
+<td style="text-align: left;">Combat rolls only</td>
+</tr>
+<tr>
+<td style="text-align: left;">2</td>
+<td style="text-align: left;">Rerolls</td>
+<td style="text-align: left;">Combat rolls (Chaos rolls if specified by kit/Profession)</td>
+</tr>
+<tr>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">Roll Bonus</td>
+<td style="text-align: left;">Combat rolls only</td>
+</tr>
+</tbody>
+</table>
+<h4 id="kit-item-power-tier-summary">Kit Item Power Tier Summary</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Power Tier</th>
+<th style="text-align: left;">Mod Slots</th>
+<th style="text-align: left;">Modifier Value</th>
+<th style="text-align: left;">Armor Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">P1</td>
+<td style="text-align: left;">1</td>
+<td style="text-align: left;">±1</td>
+<td style="text-align: left;">1 strike</td>
+</tr>
+<tr>
+<td style="text-align: left;">P2</td>
+<td style="text-align: left;">2</td>
+<td style="text-align: left;">±2</td>
+<td style="text-align: left;">2 strikes</td>
+</tr>
+<tr>
+<td style="text-align: left;">P3</td>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">±3</td>
+<td style="text-align: left;">3 strikes</td>
+</tr>
+<tr>
+<td style="text-align: left;">P4</td>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">±4</td>
+<td style="text-align: left;">4 strikes</td>
+</tr>
+<tr>
+<td style="text-align: left;">P5</td>
+<td style="text-align: left;">5</td>
+<td style="text-align: left;">±5</td>
+<td style="text-align: left;">5 strikes</td>
+</tr>
+</tbody>
+</table>
+<h4 id="modifier-type-summary">Modifier Type Summary</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Modifier</th>
+<th style="text-align: left;">Applies To</th>
+<th style="text-align: left;">Value Source</th>
+<th style="text-align: left;">Timing</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Additional Dice</td>
+<td style="text-align: left;">Attack/Defense rolls</td>
+<td style="text-align: left;">Mod Power Tier</td>
+<td style="text-align: left;">Step 1 — before rerolls</td>
+</tr>
+<tr>
+<td style="text-align: left;">Reroll</td>
+<td style="text-align: left;">Attack/Defense rolls</td>
+<td style="text-align: left;">Mod Power Tier</td>
+<td style="text-align: left;">Step 2 — before Roll Bonus</td>
+</tr>
+<tr>
+<td style="text-align: left;">Roll Bonus</td>
+<td style="text-align: left;">Attack/Defense rolls</td>
+<td style="text-align: left;">Mod Power Tier</td>
+<td style="text-align: left;">Step 3 — after rerolls</td>
+</tr>
+<tr>
+<td style="text-align: left;">Damage Bonus</td>
+<td style="text-align: left;">Strikes (post-comparison)</td>
+<td style="text-align: left;">Mod Power Tier</td>
+<td style="text-align: left;">After comparison, before armor</td>
+</tr>
+<tr>
+<td style="text-align: left;">Armor Penetration</td>
+<td style="text-align: left;">Armor mitigation (attacker)</td>
+<td style="text-align: left;">Mod Power Tier</td>
+<td style="text-align: left;">After Damage Bonus, same step as armor</td>
+</tr>
+</tbody>
+</table>
+<h4 id="mod-slot-rules-summary">Mod Slot Rules Summary</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Rule</th>
+<th style="text-align: left;">Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Slots per item</td>
+<td style="text-align: left;">Equal to item's Power Tier*</td>
+</tr>
+<tr>
+<td style="text-align: left;">Max mod tier per item</td>
+<td style="text-align: left;">Cannot exceed item's Power Tier*</td>
+</tr>
+<tr>
+<td style="text-align: left;">Mod types per item</td>
+<td style="text-align: left;">One of each type maximum</td>
+</tr>
+<tr>
+<td style="text-align: left;">Slot typing</td>
+<td style="text-align: left;">None — any mod fits any slot</td>
+</tr>
+<tr>
+<td style="text-align: left;">Hardwired mods</td>
+<td style="text-align: left;">Occupy a slot; immutable; count toward one-per-type limit</td>
+</tr>
+<tr>
+<td style="text-align: left;">Accessible slots</td>
+<td style="text-align: left;">Capped by character's Power Tier</td>
+</tr>
+<tr>
+<td style="text-align: left;">Locked slots</td>
+<td style="text-align: left;">Unlocked as character advances</td>
+</tr>
+<tr>
+<td style="text-align: left;">Modifier value</td>
+<td style="text-align: left;">Always set by the mod's own Power Tier*</td>
+</tr>
+</tbody>
+</table>
+<p>*<em>All modifiers still scale to and cap at the players Power Level</em></p>
+<h4 id="carry-slot-summary">Carry Slot Summary</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Slot</th>
+<th style="text-align: left;">Contents</th>
+<th style="text-align: left;">Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Chest</td>
+<td style="text-align: left;">Armor</td>
+<td style="text-align: left;">One armor item only</td>
+</tr>
+<tr>
+<td style="text-align: left;">Right Pocket</td>
+<td style="text-align: left;">1 carry item</td>
+<td style="text-align: left;">Content Module defines item size</td>
+</tr>
+<tr>
+<td style="text-align: left;">Left Pocket</td>
+<td style="text-align: left;">1 carry item</td>
+<td style="text-align: left;">Content Module defines item size</td>
+</tr>
+<tr>
+<td style="text-align: left;">Back</td>
+<td style="text-align: left;">Backpack or large item</td>
+<td style="text-align: left;">Backpacks expand carry capacity</td>
+</tr>
+<tr>
+<td style="text-align: left;">Primary</td>
+<td style="text-align: left;">Weapon</td>
+<td style="text-align: left;">Separate from carry slots</td>
+</tr>
+<tr>
+<td style="text-align: left;">Secondary</td>
+<td style="text-align: left;">Weapon</td>
+<td style="text-align: left;">Separate from carry slots</td>
+</tr>
+<tr>
+<td style="text-align: left;">Backup</td>
+<td style="text-align: left;">Weapon</td>
+<td style="text-align: left;">Separate from carry slots</td>
+</tr>
+</tbody>
+</table>
+<h4 id="full-combat-resolution--order-of-operations">Full Combat Resolution — Order of Operations</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Step</th>
+<th style="text-align: left;">Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">1</td>
+<td style="text-align: left;">Roll base dice pool (attack or defense)</td>
+</tr>
+<tr>
+<td style="text-align: left;">2</td>
+<td style="text-align: left;">Add Additional Dice from equipped kit</td>
+</tr>
+<tr>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">Reroll dice as permitted by equipped kit</td>
+</tr>
+<tr>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">Apply Roll Bonus from equipped kit</td>
+</tr>
+<tr>
+<td style="text-align: left;">5</td>
+<td style="text-align: left;">Compare attack dice vs. defense dice</td>
+</tr>
+<tr>
+<td style="text-align: left;">6</td>
+<td style="text-align: left;">Apply Damage Bonus (attacker) if at least 1 strike lands</td>
+</tr>
+<tr>
+<td style="text-align: left;">7</td>
+<td style="text-align: left;">Apply Armor Penetration — reduce target's armor mitigation</td>
+</tr>
+<tr>
+<td style="text-align: left;">8</td>
+<td style="text-align: left;">Apply Armor mitigation (defender) at reduced value</td>
+</tr>
+<tr>
+<td style="text-align: left;">9</td>
+<td style="text-align: left;">Apply net strikes to Damage Tier</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="base10-system--glossary-of-terms">Base10 System — Glossary of Terms</h3>
+<hr />
+<h4 id="a">A</h4>
+<p><strong>Additional Dice</strong> <em>(Combat)</em>
+A modifier type that temporarily expands a combatant's dice pool for a single roll. Extra dice are rolled alongside the standard pool and participate in the attack/defense comparison normally. The number of additional dice equals the mod's Power Tier or, when granted by a Profession Feature, the character's Tier Bonus. Additional Dice do not persist between actions. Resolved in step 1 of the Order of Operations, before Rerolls.</p>
+<p><strong>Advancement Points (AP)</strong> <em>(Progression)</em>
+The universal currency of character growth. Earned at each level (3 AP at levels 0–3, 4 AP at levels 4–7, 5 AP at levels 8–9), totaling 38 AP across a full character lifespan. Spent on Skill levels, Attribute scores, and Combat Tier advancement. No single Skill or Attribute may exceed 9 points from AP investment.</p>
+<p><strong>Armor</strong> <em>(Kit)</em>
+A kit item that occupies the Chest carry slot and provides passive strike mitigation equal to its Power Tier after all other resolution steps. Armor also has mod slots (equal to its Power Tier) that apply to defense rolls. The only kit item with an inherent passive mechanical effect independent of its mods. Armor Penetration from an attacker's weapon reduces its effective mitigation.</p>
+<p><strong>Armor Penetration (AP)</strong> <em>(Kit)</em>
+A kit-exclusive modifier type that reduces the target's passive armor mitigation. The number of strikes the armor absorbs is reduced by the AP mod's Power Tier. Formula: <strong>Effective Mitigation = Armor Power Tier − AP Mod Power Tier (minimum 0)</strong>. Cannot be granted by Profession Features. Applied after Damage Bonus, during the same resolution step as armor mitigation.</p>
+<p><strong>Attribute Bonus</strong> <em>(Skills)</em>
+The modifier derived from an Attribute score, applied to Skill checks. Ranges from −4% (score of 0) to +4% (score of 9). Because every Skill draws on two paired Attributes, both Attribute Bonuses are added together to form the combined Attribute Bonus used in the Base Skill and Chaos Bonus calculations. An inactive Skill Slot applies only one Attribute Bonus instead of both.</p>
+<p><strong>Attributes</strong> <em>(Core)</em>
+The seven fixed traits that define who a character is: <strong>Curiosity, Empathy, Focus, Conditioning, Intuition, Versatility, Will</strong>. Their names and meanings never change across settings or campaigns. Scores begin at character creation (rolled on 2d10, keep highest) and may be raised with Advancement Points to a maximum of 9. Each score generates an Attribute Bonus applied to Skill checks.</p>
+<hr />
+<h4 id="b">B</h4>
+<p><strong>Base Skill</strong> <em>(Skills)</em>
+The percentage threshold used during a Chaos Roll. Calculated as: <strong>Skill Bonus + Attribute Bonus</strong>. If the Custodian's roll falls at or below the Base Skill, the character succeeds automatically without needing to roll. The higher the Base Skill, the wider the automatic success window.</p>
+<p><strong>Base10</strong> <em>(Core)</em>
+The setting-agnostic RPG framework that structures all mechanics in this guide. Named for its consistent use of ten-sided dice and its ten-level progression structure. Designed to be modular — core mechanics are defined once and remain constant; setting-specific content (kit, skills, professions, world flavor) is handled by separate Content Modules.</p>
+<hr />
+<h4 id="c">C</h4>
+<p><strong>Carry Slots</strong> <em>(Kit)</em>
+The base slots representing what a character can reasonably carry on their person: <strong>Chest</strong> (armor only), <strong>Right Pocket</strong>, <strong>Left Pocket</strong>, and <strong>Back</strong> (backpack or large item). Weapon slots are separate from carry slots and do not reduce carry capacity. A backpack in the Back slot expands total carry capacity.</p>
+<p><strong>Chain Order</strong> <em>(Combat)</em>
+The sequence in which combatants take actions during an Exchange, established by ranking Standoff Chaos Roll results from highest to lowest. After the opening action and any reaction chain resolves, the Exchange continues following Chain Order. Combatants who have spent all Attack dice are skipped but may still use Defense dice. A combatant may pass their position without spending dice.</p>
+<p><strong>Chaos Bonus</strong> <em>(Skills)</em>
+The value added to a character's d100 roll during a Chaos Roll when the Custodian's roll exceeds the Base Skill. Calculated as: <strong>Attribute Bonus (both paired Attributes) + Skill Slot Level</strong>. The Chaos Bonus keeps characters competitive without making failure impossible — it is the mechanism for fighting for a success that's out of the automatic range.</p>
+<p><strong>Chaos Roll</strong> <em>(Skills)</em>
+The contested d100 resolution mechanic used for all Skill checks. The Custodian rolls first against the character's Base Skill. If the Custodian's result is at or below Base Skill, success is automatic. If the Custodian exceeds it, the character rolls d100 and adds their Chaos Bonus, attempting to beat the Custodian's result. Also used in the Standoff phase to determine Chain Order and the Edge.</p>
+<p><strong>Combat Tier (CT)</strong> <em>(Combat)</em>
+An optional advancement track representing raw fighting instinct, separate from Skills, Attributes, and Profession Features. Ranks CT1 through CT5, one advancement available per Power Tier. Each advancement costs half the AP gained that tier and grants one chosen modifier type (Additional Dice, Reroll, or Roll Bonus) whose value equals the number of times that type has been chosen. Combat Tier bonuses are always-on, apply to all combat rolls, and operate under a separate cap from Kit and Profession Features.</p>
+<p><strong>Conditioning (Cn)</strong> <em>(Core)</em>
+One of the Seven Attributes. Represents physical training and readiness — the trained capacity to perform. Raw power, speed, and agility are all expressions of Conditioning. Characters with high Conditioning are stronger, faster, and more physically capable than their peers.</p>
+<p><strong>Content Module</strong> <em>(Core)</em>
+A setting-specific supplement that plugs into the Base10 framework. Defines everything the core rules deliberately leave open: Skill names and descriptions, Profession definitions, Kit items, world flavor, and setting context. The Base10 system guide provides the mechanical foundation; Content Modules provide everything else. Examples include CS:RPG (sci-fi future), Coyote Peridot (near-future dystopian), and Der Wolfen (alternate 1946 horror).</p>
+<p><strong>Curiosity (Cu)</strong> <em>(Core)</em>
+One of the Seven Attributes. Represents the drive to explore, learn, and seek out new experiences. Curious characters are natural investigators, quick to notice details, and eager to uncover the unknown. Paired with other Attributes to define investigation-, perception-, and knowledge-oriented Skill Slots.</p>
+<p><strong>Custodian</strong> <em>(Core)</em>
+The keeper of the world and arbiter of the rules. The Custodian tells the story, sets the stage, and plays all entities the Players do not. In Skill checks, the Custodian rolls against the character's Base Skill to determine whether the character succeeds automatically or must make a contested Chaos Roll.</p>
+<hr />
+<h4 id="d">D</h4>
+<p><strong>d10</strong> <em>(Core)</em>
+The ten-sided die. The standard die used in Base10 for almost every roll. Values range from 0 (lowest) to 9 (highest) — 0 is never treated as 10. Attack and Defense Pools consist exclusively of d10s. Multiple d10s are pooled for combat; a d100 is simulated with 2d10 (one tens-place, one ones-place).</p>
+<p><strong>d100</strong> <em>(Core)</em>
+The percentile die used for Skill and Chaos Rolls. Simulated with 2d10: one die serves as the tens place and one as the ones place. The tens-place die must be declared before the roll. Values range from 00 (a result of 0) to 99. The Official Base10 Dice Set includes one double-digit d10 for this purpose.</p>
+<p><strong>Damage Bonus</strong> <em>(Kit)</em>
+A kit-exclusive modifier that adds bonus strikes equal to the mod's Power Tier after the attack/defense comparison resolves. Activates only if at least one strike lands from the comparison — a total miss produces zero bonus strikes. Applied after comparison but before armor mitigation. Cannot be granted by Profession Features and does not interact with the Tier Bonus cap system.</p>
+<p><strong>Damage Tier</strong> <em>(Combat)</em>
+One of five escalating states of injury: <strong>Hit → Hurt → Wounded → Incapacitated → Knocked Out</strong>. Each tier carries cumulative penalties to Roll Bonus, movement, and dice pool. The number of strikes required to advance through each tier equals the character's Power Tier. A character at Knocked Out has no dice pool, no movement, and cannot act.</p>
+<p><strong>Defense Pool</strong> <em>(Combat)</em>
+A combatant's pool of dice used to respond to incoming attacks. Equal in size to the Attack Pool (determined by level). Defense dice are spent as they are committed to reactions. A combatant may commit any number of Defense dice to a reaction, including zero. Defense dice remaining at the end of an Exchange do not carry over — both pools reset fully at the start of each new Exchange.</p>
+<hr />
+<h4 id="e">E</h4>
+<p><strong>Edge</strong> <em>(Combat)</em>
+The tactical advantage held by the combatant with the highest Chaos Roll result in the Standoff. The Edge holder has the right to open the Exchange and applies either a Reroll or Roll Bonus modifier (scaled to their Tier Bonus) to their first action. The modifier stays with the Edge holder until their first action, even if they choose to pass at the start of the chain.</p>
+<p><strong>Empathy (Em)</strong> <em>(Core)</em>
+One of the Seven Attributes. Represents the ability to understand and share the feelings of others. Characters with high Empathy excel at reading emotions, anticipating reactions, and navigating social dynamics — for connection, persuasion, or manipulation. Anchors social- and emotional-intelligence-oriented Skill Slots.</p>
+<p><strong>Exchange</strong> <em>(Combat)</em>
+The second of two combat phases. The violence itself. Begins when the first combatant commits Attack dice and runs as a chain of actions and reactions in Chain Order. There are no formal turns — the chain flows continuously. The Exchange ends when all Attack dice across all combatants are spent. Both dice pools then reset and a new Standoff begins.</p>
+<hr />
+<h4 id="f">F</h4>
+<p><strong>Focus (Fo)</strong> <em>(Core)</em>
+One of the Seven Attributes. Represents the power to concentrate and maintain attention, even in challenging or distracting environments. High Focus enables precise actions and deep understanding of complex subjects. Anchors precision-, discipline-, and technical-mastery-oriented Skill Slots.</p>
+<hr />
+<h4 id="h">H</h4>
+<p><strong>Hand-to-Hand</strong> <em>(Combat)</em>
+The melee range category in Base10 combat. Attacker and target must occupy adjacent hexes on the tactical hex grid. No range profile is required for Hand-to-Hand weapons. Attacks against non-adjacent targets at this range category are not possible.</p>
+<p><strong>Hardwired Mod</strong> <em>(Kit)</em>
+A mod permanently built into a kit item that cannot be removed, swapped, or overwritten under any circumstances. Occupies a mod slot like any other mod and counts toward the one-mod-type-per-item restriction. Specific items with hardwired mods and their configurations are defined in the relevant Content Module.</p>
+<p><strong>Hex Grid</strong> <em>(Combat)</em>
+The 1-meter hexagonal tactical grid used during combat, chases, and other positional encounters. Each hex represents a 1-meter space occupied by only one entity at a time. Movement is tracked in hexes using each character's Movement Allowance. Terrain, elevation, and movement costs are defined in the relevant Content Module.</p>
+<hr />
+<h4 id="i">I</h4>
+<p><strong>Intuition (In)</strong> <em>(Core)</em>
+One of the Seven Attributes. Represents the ability to understand or perceive things instinctively — hunches that prove correct, sensing things beyond normal perception, reading undercurrents in a situation. Anchors the Intuition-paired Skill Slot used in the Standoff phase Chaos Roll. Characters with high Intuition often act before others in combat.</p>
+<hr />
+<h4 id="k">K</h4>
+<p><strong>Kit</strong> <em>(Kit)</em>
+The collective term for any item a character carries, wears, or wields that interacts with Base10's dice mechanics — including weapons, armor, and modifier-granting items. Every kit item has its own Power Tier independent of the character carrying it. Kit names, descriptions, availability, and world flavor are defined by Content Modules; mechanical behavior is governed by the core rules.</p>
+<hr />
+<h4 id="l">L</h4>
+<p><strong>Long Range</strong> <em>(Combat)</em>
+A range category for attacks made beyond a weapon's Point Blank maximum, up to the weapon's Long Range maximum. All Long Range attacks incur a negative Roll Bonus penalty: <strong>(Weapon Power Tier − Character Power Tier) + 1</strong>, with a floor of −1. Attacks beyond a weapon's Long Range maximum are not possible. Specific range maximums are defined by weapon statistics in the Content Module.</p>
+<hr />
+<h4 id="m">M</h4>
+<p><strong>Mod</strong> <em>(Kit)</em>
+An independent item installed into a kit item's Mod Slot to grant a modifier. Each mod has its own Power Tier, which determines its modifier value — not the Power Tier of the item it is installed in. Mods may be under-tier relative to their host item but may not exceed the host item's tier. Only one mod of each modifier type may occupy any single item.</p>
+<p><strong>Mod Slot</strong> <em>(Kit)</em>
+A slot on a kit item that holds one mod. A kit item has a number of Mod Slots equal to its Power Tier. Slots are untyped — any modifier type fits any slot. Empty slots are fully functional; the item simply provides no modifier from them. A character may only access a number of slots equal to their own Power Tier; excess slots are locked until advancement.</p>
+<p><strong>Modifiers</strong> <em>(Combat)</em>
+The three types of dice-affecting bonuses available in combat: <strong>Additional Dice</strong>, <strong>Reroll</strong>, and <strong>Roll Bonus</strong>. Granted by Kit mods, Profession Features, and Combat Tier. Each type tracks independently; different modifier types can be stacked to their respective caps simultaneously. Kit also offers two exclusive modifier types: Damage Bonus and Armor Penetration, which have no Profession Feature equivalents.</p>
+<p><strong>Movement Allowance</strong> <em>(Combat)</em>
+The maximum number of hexes a character may move in a single turn. Can be split across a turn (before and after taking an action). Unused movement is lost at the end of the turn and does not carry over. Movement Allowance values are defined in the relevant Content Module. Damage Tier penalties progressively reduce movement.</p>
+<hr />
+<h4 id="o">O</h4>
+<p><strong>Order of Operations</strong> <em>(Combat)</em>
+The mandatory resolution sequence when multiple modifier types apply to the same roll: <strong>1. Additional Dice → 2. Reroll → 3. Roll Bonus</strong>. Additional Dice expand the pool first; the player then selects which dice to reroll; Roll Bonus is applied last to the entire final pool. This sequence ensures all modifier interactions are consistent and unambiguous.</p>
+<hr />
+<h4 id="p">P</h4>
+<p><strong>Point Blank</strong> <em>(Combat)</em>
+The middle range category. Attacker and target are separated by at least one hex, up to the weapon's Point Blank maximum. No range penalty applies at Point Blank. The specific maximum is defined by individual weapon statistics in the Content Module.</p>
+<p><strong>Power Tier</strong> <em>(Progression)</em>
+The five-stage progression bracket (P1–P5) that governs a character's overall capability. Each tier spans two levels (.0 and .1 stages). The Tier Bonus equals the tier number (P3 = +3). Power Tier determines Combat Dice Pool size, Strikes Per Damage Tier, the Tier Bonus cap for modifiers, kit equipping rules, and the number of accessible mod slots. Kit items also have their own independent Power Tier.</p>
+<p><strong>Profession</strong> <em>(Profession)</em>
+A structured set of mechanical features that define how a character operates beyond the baseline of Attributes, Skills, and Kit. A character may have exactly one Profession, chosen at creation — the choice is permanent. Professions grant five Features (one per Power Tier) and optional Starting Bonuses. All Profession definitions are provided by Content Modules. Playing without a Profession is always valid and creates no mechanical disadvantage.</p>
+<p><strong>Profession Feature</strong> <em>(Profession)</em>
+One of five abilities unlocked at the .0 stage of each Power Tier (levels 0, 2, 4, 6, 8). Features may grant Additional Dice, Reroll, Roll Bonus, Skill Bonus, Attribute Bonus, Combat Tier Bonus, or Passive Effects. Additional Dice, Reroll, and Roll Bonus from Features are subject to the Tier Bonus cap (combined with Kit sources). Passive Effects operate under their own module-defined rules outside this cap.</p>
+<hr />
+<h4 id="r">R</h4>
+<p><strong>Reaction</strong> <em>(Combat)</em>
+The immediate response made by a combatant when targeted by an attack. Reactions take priority over everything, including Chain Order — the chain does not continue until the reaction resolves. After committing Defense dice, the reacting combatant may optionally commit Attack dice of their own in a counter-attack, extending the chain. A combatant using a Skill during the Exchange forfeits both pools and cannot react.</p>
+<p><strong>Reroll</strong> <em>(Combat)</em>
+A modifier type that allows a character to re-roll one or more dice from their current pool (including Additional Dice) before the Roll Bonus is applied. The player selects which dice to reroll after seeing the full pool. A rolled 0 must always be rerolled before any other dice. Rerolled results are final — a die cannot be rerolled twice unless a separate Reroll source explicitly permits it. The number of rerolls equals the mod's Power Tier or Tier Bonus (capped per source).</p>
+<p><strong>Roll Bonus</strong> <em>(Combat)</em>
+A modifier type that adds a flat value to every die in the final pool after all rerolls are complete. Can be positive or negative. When both positive and negative Roll Bonuses apply, negative ones resolve first. The value equals the mod's Power Tier or, for Profession Features, the character's Tier Bonus. An unmodified 9 on an attack roll deals 1 extra point of damage regardless of Roll Bonuses; an unmodified 9 on a defense roll automatically blocks any strike.</p>
+<hr />
+<h4 id="s">S</h4>
+<p><strong>Skill</strong> <em>(Skills)</em>
+A learned capability occupying a Skill Slot, representing what a character can do. Skills have levels 0–9; each level adds 10% to the Skill Bonus. The first Advancement Point activates the slot at level 0 (no bonus yet, but both Attribute Bonuses apply). Subsequent AP increase the level. Skill names, descriptions, and applications are defined by Content Modules — the Skill Slots themselves are the fixed architecture.</p>
+<p><strong>Skill Bonus</strong> <em>(Skills)</em>
+The percentage component of Base Skill derived from Skill level. Calculated as: <strong>Skill Slot Level × 10%</strong>. A Skill at level 5 contributes 50% to the Base Skill. The first AP activates the slot but does not grant a Skill Bonus (level 0 × 10% = 0%). The Skill Bonus represents the character's practiced proficiency in the specific Skill domain.</p>
+<p><strong>Skill Slot</strong> <em>(Skills)</em>
+A pairing of exactly two Attributes that forms the mechanical structure of a Skill. Determines which Attributes contribute bonuses to that Skill's rolls. There are 21 unique pairings available across the full Attribute set. A Skill Slot is inactive until at least one Advancement Point is allocated to it; inactive slots provide only one Attribute Bonus instead of both.</p>
+<p><strong>Skill Tier</strong> <em>(Skills)</em>
+One of three configurations determining how many Skill Slots are active in play: <strong>Core (7 Skills)</strong>, <strong>Standard (14 Skills)</strong>, or <strong>Complete (21 Skills)</strong>. At each tier, every Attribute appears in exactly the same number of slots (2, 4, or 6 respectively), ensuring no Attribute is over- or under-represented. The Standard Tier is recommended for ongoing campaign play.</p>
+<p><strong>Standoff</strong> <em>(Combat)</em>
+The first of two combat phases. A contested Chaos Roll using an active Intuition-based Skill, made simultaneously by all combatants. Results are ranked to establish Chain Order and assign the Edge. The Standoff represents the moment before violence — reading the room, tracking threats, deciding who moves first. A new Standoff is conducted after every Exchange.</p>
+<p><strong>Starting Bonus</strong> <em>(Profession)</em>
+An additional benefit granted at character creation by a Profession, above and beyond the standard 3 starting Advancement Points. May include pre-allocated Skill AP (fixed to named Skills, cannot be reallocated), Attribute score increases, or Combat Tier advancements. All Starting Bonus definitions are provided by Content Modules.</p>
+<p><strong>Strike</strong> <em>(Combat)</em>
+The unit of damage in Base10. One strike is applied for every attack die that exceeds its paired defense die in the comparison. Multiple sources can contribute strikes: the base comparison, Damage Bonus mods, and natural 9s on attack dice. Armor mitigates strikes equal to its Power Tier after all other resolution steps. Strikes accumulate within Damage Tiers; each tier requires a number of strikes equal to the defender's Power Tier to fill.</p>
+<hr />
+<h4 id="t">T</h4>
+<p><strong>Tier Bonus</strong> <em>(Progression)</em>
+A character's current Power Tier number, used as the universal cap and scaling value across the system. Equal to 1 at P1 through 5 at P5. Sets the maximum for Additional Dice, Reroll, and Roll Bonus from Kit and Profession Features (combined). Also determines the Edge modifier value in the Standoff. Combat Tier bonuses operate under a separate, independent cap and do not count toward or interact with the Tier Bonus cap.</p>
+<hr />
+<h4 id="v">V</h4>
+<p><strong>Valid Target</strong> <em>(Combat)</em>
+A combatant that may legally be attacked. Subject to two constraints: <strong>Range</strong> (attacks must comply with the applicable range category and the attacker's weapon profile) and <strong>Positioning</strong> (the Custodian may rule that cover, environment, or movement limits available targets). A combatant who uses a Skill during an Exchange becomes a valid target with no Defense dice to respond with.</p>
+<p><strong>Versatility (Ve)</strong> <em>(Core)</em>
+One of the Seven Attributes. Represents the ability to adapt quickly to new situations and apply knowledge across different contexts. Characters with high Versatility learn rapidly, grasp new concepts easily, and excel at finding innovative solutions. Anchors adaptability- and cross-domain-oriented Skill Slots.</p>
+<hr />
+<h4 id="w">W</h4>
+<p><strong>Weapon Slots</strong> <em>(Kit)</em>
+Three dedicated slots for carrying weapons: <strong>Primary</strong> (main weapon), <strong>Secondary</strong> (sidearm or backup), and <strong>Backup</strong> (last-resort, typically P1–P2). These slots exist outside the carry slot system — equipping weapons does not reduce carry capacity. Mods installed on weapons apply to attack rolls.</p>
+<p><strong>Will (Wi)</strong> <em>(Core)</em>
+One of the Seven Attributes. Represents mental fortitude and determination — the capacity to persevere in adversity, resist mental influence, and maintain focus on long-term goals. Anchors endurance-, resolve-, and mental-resistance-oriented Skill Slots.</p>
+<hr />
+<p><em>Base10 System Guide — Setting-Agnostic TTRPG Core Rules</em></p>
+<p><em>Version: 3.2 — Full Edition</em></p>
+<p><em>An elevendog media llc publication</em></p>
+</body>
+</html>

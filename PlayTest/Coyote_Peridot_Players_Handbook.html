@@ -1,0 +1,1792 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {
+            background-color: #1e1e1e;        /* Dark grey background */
+            color: #D4EDA0;                   /* Pale peridot text */
+            font-family: Consolas, 'Courier New', monospace;
+            line-height: 1.6;
+            margin: 40px auto;
+            max-width: 800px;
+            padding: 20px;
+
+        }
+        h1, h2, h3, h4, h5, h6 {
+            color: #B5E61D;                   /* Gem peridot headers */
+            font-family: Consolas, 'Courier New', monospace;
+        }
+        a {
+            color: #39FF14;                   /* Cyber peridot links */
+            text-decoration: none
+        }
+        a:hover {
+            color: #C77DFF;                   /* Purple highlight on hover */
+            text-decoration: underline;
+        }
+        code {
+            background-color: #2d2d2d;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: Consolas, 'Courier New', monospace;
+        }
+        pre {
+            background-color: #2d2d2d;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: Consolas, 'Courier New', monospace;
+        }
+        /* Additional styling for nested lists in table of contents */
+        ol ol, ol ul, ul ol, ul ul {
+            margin-top: 0.5em;
+            margin-bottom: 0.5em;
+            margin-left: 1.5em;
+        }
+        li {
+            margin-bottom: 0.25em;
+        }
+        /* Table styling for proper formatting */
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 1.5em 0;
+            background-color: #2d2d2d;
+            font-family: Consolas, 'Courier New', monospace;
+        }
+        th, td {
+            border: 1px solid #444;
+            padding: 8px 12px;
+            text-align: left;
+            color: #D4EDA0;                   /* Pale peridot cell text */
+        }
+        th {
+            background-color: #3a3a3a;
+            color: #B5E61D;                   /* Gem peridot header text */
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #363636;
+        }
+        tr:hover {
+            background-color: #404040;
+        }
+        /* Blockquote styling */
+        blockquote {
+            border-left: 4px solid #C77DFF;   /* Purple emphasis border */
+            margin: 1.5em 0;
+            padding: 0.5em 1em;
+            background-color: #2d2d2d;
+            color: #D4EDA0;                   /* Pale peridot text */
+            font-style: italic;
+        }
+        /* Image styling */
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+            margin: 1em 0;
+        }
+        /* Smooth scrolling for anchor links */
+        html {
+            scroll-behavior: smooth;
+        }
+        /* Sticky TOC styling */
+        .sticky-toc {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            max-width: 250px;
+            max-height: 80vh;
+            overflow-y: auto;
+            background-color: #2d2d2d;
+            border: 1px solid #444;
+            border-radius: 5px;
+            padding: 12px;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            font-size: 0.9em;
+        }
+        .sticky-toc h3 {
+            color: #B5E61D;                   /* Gem peridot TOC title */
+            margin-top: 0;
+            margin-bottom: 8px;
+            font-size: 1em;
+        }
+        .sticky-toc ol,
+        .sticky-toc ul {
+            padding-left: 1.5em;
+            margin: 0;
+        }
+        .sticky-toc li {
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+        .sticky-toc a {
+            color: #39FF14;                   /* Cyber peridot TOC links */
+            text-decoration: none;
+        }
+        .sticky-toc a:hover {
+            text-decoration: underline;
+            color: #C77DFF;                   /* Purple highlight on hover */
+        }
+        /* Active TOC item highlighting */
+        .toc-active {
+            color: #C77DFF !important;        /* Purple active item */
+            font-weight: bold;
+        }
+        /* TOC toggle button (only shown on small screens) */
+        .toc-toggle {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: #2d2d2d;
+            color: #B5E61D;                   /* Gem peridot button text */
+            border: 1px solid #444;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            z-index: 1001;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        /* Medium screens: shift content right so the sticky TOC doesn't cover it */
+        @media (min-width: 769px) and (max-width: 1419px) {
+            body.has-sticky-toc {
+                margin-left: 290px;
+                margin-right: 20px;
+            }
+        }
+        /* Small screens: hide the TOC behind the toggle button */
+        @media (max-width: 768px) {
+            .sticky-toc {
+                display: none;
+            }
+            .sticky-toc.open {
+                display: block;
+            }
+            .toc-toggle {
+                display: block;
+            }
+        }
+    </style>
+    <script>
+        // Make TOC sticky and highlight active section
+        document.addEventListener('DOMContentLoaded', function() {
+            // Find the TOC heading: any h1-h3 reading "Table of Contents" or "Contents" (any case)
+            const tocPattern = /^(table of )?contents$/i;
+            let tocHeading = null;
+            for (const heading of document.querySelectorAll('h1, h2, h3')) {
+                if (tocPattern.test(heading.textContent.trim())) {
+                    tocHeading = heading;
+                    break;
+                }
+            }
+            if (!tocHeading) return;
+
+            // Find the TOC list (numbered or bulleted) after the heading,
+            // skipping other elements (like <p> tags) but stopping at the next heading
+            let tocList = tocHeading.nextElementSibling;
+            while (tocList && tocList.tagName !== 'OL' && tocList.tagName !== 'UL') {
+                if (/^H[1-6]$/.test(tocList.tagName)) return;
+                tocList = tocList.nextElementSibling;
+            }
+            if (!tocList) return;
+
+            // Make every TOC item a working link. Items whose link doesn't match a
+            // heading ID, or plain-text items with no link, are matched to a heading
+            // by their text. Sub-items are only matched within their parent's section,
+            // so repeated names (like "Overview") go to the right place.
+            const allHeadings = Array.from(document.querySelectorAll('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]'));
+            const normalize = text => text.trim().toLowerCase().split(/\s+/).join(' ');
+
+            function linkTocItems(list, searchStart) {
+                for (const item of list.children) {
+                    if (item.tagName !== 'LI') continue;
+
+                    // The item's own label is everything except its nested lists
+                    const labelNodes = Array.from(item.childNodes)
+                        .filter(node => node.nodeName !== 'UL' && node.nodeName !== 'OL');
+                    const label = labelNodes.map(node => node.textContent).join('');
+                    const link = item.querySelector(':scope > a, :scope > p > a');
+
+                    // Find the target heading: by link first, then by text
+                    let targetIndex = -1;
+                    if (link) {
+                        targetIndex = allHeadings.findIndex(h => '#' + h.id === link.getAttribute('href'));
+                    }
+                    if (targetIndex === -1) {
+                        targetIndex = allHeadings.findIndex((h, i) =>
+                            i >= searchStart && normalize(h.textContent) === normalize(label));
+                        if (targetIndex !== -1) {
+                            if (link) {
+                                link.setAttribute('href', '#' + allHeadings[targetIndex].id);
+                            } else {
+                                const newLink = document.createElement('a');
+                                newLink.href = '#' + allHeadings[targetIndex].id;
+                                newLink.textContent = label.trim();
+                                labelNodes.forEach(node => node.remove());
+                                item.insertBefore(newLink, item.firstChild);
+                            }
+                        }
+                    }
+
+                    // Search sub-items within this item's section, and later
+                    // siblings after it
+                    const nextStart = targetIndex !== -1 ? targetIndex + 1 : searchStart;
+                    for (const subList of item.querySelectorAll(':scope > ul, :scope > ol')) {
+                        linkTocItems(subList, nextStart);
+                    }
+                    searchStart = nextStart;
+                }
+            }
+            linkTocItems(tocList, 0);
+
+            // Create sticky TOC container
+            const stickyToc = document.createElement('div');
+            stickyToc.className = 'sticky-toc';
+            const tocTitle = document.createElement('h3');
+            tocTitle.textContent = tocHeading.textContent.trim();
+            stickyToc.appendChild(tocTitle);
+
+            // Clone the TOC list
+            const clonedToc = tocList.cloneNode(true);
+            stickyToc.appendChild(clonedToc);
+            document.body.appendChild(stickyToc);
+            document.body.classList.add('has-sticky-toc');
+
+            // Hide original TOC heading
+            tocHeading.style.display = 'none';
+            tocList.style.display = 'none';
+
+            // Highlight active TOC item on scroll
+            const sections = Array.from(document.querySelectorAll('h2[id], h3[id], h4[id]'))
+                .filter(section => section !== tocHeading);
+            const tocLinks = Array.from(stickyToc.querySelectorAll('a'));
+            
+            function highlightActiveSection() {
+                // Find current section
+                let currentSection = '';
+                const scrollPosition = window.scrollY + 100;
+                
+                for (const section of sections) {
+                    if (section.offsetTop <= scrollPosition) {
+                        currentSection = section.id;
+                    } else {
+                        break;
+                    }
+                }
+                
+                // Update active link
+                tocLinks.forEach(link => {
+                    link.classList.remove('toc-active');
+                    if (link.getAttribute('href') === '#' + currentSection) {
+                        link.classList.add('toc-active');
+                    }
+                });
+            }
+            
+            // Initial highlight
+            highlightActiveSection();
+            
+            // Update on scroll
+            window.addEventListener('scroll', highlightActiveSection);
+            
+            // TOC toggle button (CSS only shows it, and only hides the TOC, on small screens)
+            const tocToggle = document.createElement('button');
+            tocToggle.className = 'toc-toggle';
+            tocToggle.textContent = '📖 TOC';
+            tocToggle.addEventListener('click', function(event) {
+                // Stop this click from reaching the "click outside" handler below
+                event.stopPropagation();
+                stickyToc.classList.toggle('open');
+            });
+            document.body.appendChild(tocToggle);
+
+            // Close TOC when clicking outside it or following one of its links
+            document.addEventListener('click', function(event) {
+                if (!stickyToc.contains(event.target)) {
+                    stickyToc.classList.remove('open');
+                }
+            });
+            tocLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    stickyToc.classList.remove('open');
+                });
+            });
+        });
+    </script>
+</head>
+<body>
+    <h1 id="coyote-peridot---players-handbook">Coyote Peridot - Players Handbook</h1>
+<p><em>A Base10 Content Module Supplement</em></p>
+<p><em>Frame 2 Reality - Continuum11 Onboarding Module</em></p>
+<p><em>An elevendog media llc publication</em></p>
+<hr />
+<h2 id="contents">Contents</h2>
+<ol>
+<li><a href="#chapter-1---prologue">Chapter 1 - Prologue</a><ul>
+<li>Part One - The Finding</li>
+<li>Part Two - The Coming</li>
+</ul>
+</li>
+<li><a href="#chapter-2---character-creation">Chapter 2 - Character Creation</a><ul>
+<li>Before You Begin</li>
+<li>Step 1 - Concept &amp; Faction</li>
+<li>Step 2 - Roll Your Attributes</li>
+<li>Step 3 - Choose a Profession</li>
+<li>Step 4 - Spend Starting Advancement Points</li>
+<li>Step 5 - Choose Starting Gear</li>
+<li>Step 6 - Finishing Touches</li>
+<li>Quick Reference Checklist</li>
+<li>Worked Example - Building Zero</li>
+</ul>
+</li>
+<li><a href="#chapter-3---skills">Chapter 3 - Skills</a><ul>
+<li>Overview</li>
+<li>Skill Summary</li>
+<li>Skill Descriptions</li>
+<li>Profession Skill Relationships</li>
+</ul>
+</li>
+<li><a href="#chapter-4---professions">Chapter 4 - Professions</a><ul>
+<li>Overview</li>
+<li>Playing Without a Profession</li>
+<li>Shadow · Soldier · Tech · Medic</li>
+</ul>
+</li>
+<li><a href="#chapter-5---starting-equipment">Chapter 5 - Starting Equipment</a><ul>
+<li>How to Use</li>
+<li>Primary, Secondary &amp; Backup Weapon Catalogs</li>
+<li>Skill Gear</li>
+<li>Narrative Gear</li>
+</ul>
+</li>
+</ol>
+<h2 id="---">---</h2>
+<h1 id="chapter-1---prologue">Chapter 1 - Prologue</h1>
+<p><em>This is a player-facing narrative. It tells how Coyote Peridot was found and how an expedition comes to be standing at its hull. Nothing here is secret. What waits inside is.</em></p>
+<hr />
+<h2 id="part-one---the-finding">Part One - The Finding</h2>
+<p>The <em>Boundless Horizon</em> had been four months in the deep Belt before it found the thing that would end its charter.</p>
+<p>It was a survey ship, and a compromise. No single interest had been willing to fund a year-long sweep of the Outer Belt alone, so four of them had folded their money together and crammed their people into the same hull: Montrose Roy, a Morimoto Industries survey officer with a corporate writ and a corporate temperament; Jon Schmidt, a contract specialist who answered to a mercenary firm and never quite said which one; Caden Walz, a Privateer pilot who had flown the Belt longer than the ship's registry had existed; and Samantha Caldwell, an Institution researcher who logged everything twice and trusted no one's instruments but her own. They were not a crew so much as a treaty. The treaty held because, out there, there was nothing worth breaking it for.</p>
+<p>The Belt is mostly nothing. That is the part the recruitment briefings never quite convey - the sheer patient emptiness of it, the weeks of cold rock and colder math, the way a survey ship becomes a small lit room moving through a dark that does not notice it. The crew of the <em>Boundless Horizon</em> had stopped expecting anything. They were running the sweep because the sweep was the contract, and the contract was the money, and the money was the only thing all four of them still agreed on.</p>
+<p>The blue star resolved on the long-range array first. Not unusual; blue stars are bright, and the Belt is full of them. Caldwell flagged it, logged it, and moved on. It was the second pass, eleven hours later, that caught the thing in orbit around it.</p>
+<p>The return was too clean.</p>
+<p>Natural objects are never that regular. Asteroids tumble. Debris scatters. This held a single shape across every sweep, edge after edge after edge, a geometry the array kept trying to round off into something it understood and could not. Caden Walz was the one who said it out loud, leaning over Caldwell's shoulder, reading the numbers she had read four times already and not believed.</p>
+<p>"That's not a rock," he said. "Rocks don't have corners."</p>
+<p>They burned toward it for two days. Nobody slept much. The treaty thinned as they closed, the way it always did when there was suddenly a reason to care who saw what first - but they were still, for two more days, a crew, because none of them yet understood what they were looking at.</p>
+<p>Then they were close enough, and they understood.</p>
+<p>It was a station. A structure. Twelve faces, vast beyond any honest comparison, turning slowly against the blue star with a patience that had clearly outlasted whatever had set it turning. The light caught it and the whole enormous surface answered in a low yellow-green - not reflected, not exactly, but <em>returned</em>, as though the station were a stone held up to the light to see what color it was. A gemstone the size of a moon, faceted, luminous, and old in a way that made the word feel small.</p>
+<p>They knew what it was. Everyone in the Belt knew the stories. A Great Station - one of the impossible dodecahedrons that turned up at the edges of charted space, built by no one anyone could name, for no reason anyone had established. Humanity had found a handful of them. Every one had been a wonder. Every one had also been a disappointment of a specific kind, because every one had already been <em>occupied</em> - some other people moved in long ago, having found it the same way, having made the same approach and felt the same awe and then discovered they were merely the latest tenants of a house whose builder was long gone.</p>
+<p>This one was different.</p>
+<p>There were no beacons. No claim markers burned into the hull. No drifting wreck of an earlier expedition, no scorched corporate sigil, no transmission in any band the <em>Horizon</em> could find, no sign - anywhere, on any face, at any magnification Caldwell could coax out of her instruments - that a single living thing had ever set hand or claw or instrument against it. The systems were running. The structure was intact. The thing was awake in the way a lit house at night is awake. And no one had ever been inside.</p>
+<p>It was untouched.</p>
+<p>Caldwell said it first, very quietly, the way you say a thing you already know is going to cost you. "It's empty. It's actually empty. We're the first."</p>
+<p>For a moment - and Caldwell would describe this moment, later, to anyone who would listen, because it was the last clean thing that happened aboard the <em>Boundless Horizon</em> - for a moment, all four of them simply looked at it. Four people who agreed on almost nothing, sharing the single most extraordinary view any human being had ever had of anything, and saying nothing, because there was nothing in the contract about this and nothing in any of them that was ready for it.</p>
+<p>Then Montrose Roy left the bridge.</p>
+<p>He did not say where he was going. He did not have to. By the time the others worked out what he was doing - by the time Walz was hammering on a comms-bay door that had locked from the inside - the message was already away, compressed and encrypted and screaming back toward the inner systems at the speed of light, carrying the coordinates of a blue star and an image of a gemstone the size of a moon and four words that would be worth more than the ship and everyone in it: <em>found one. nobody home.</em></p>
+<p>After that the treaty did not so much break as evaporate. Schmidt filed his own report. Walz filed his. Caldwell, who had no faction to enrich and only the truth to protect, sent hers to the Institution and to two journals and to a former student she trusted, on the theory that a thing known by everyone could not be owned by anyone. Each of them believed they were getting ahead of the others. None of them understood yet that it no longer mattered who sent word first. Word was out. That was the only fact that counted.</p>
+<p>The <em>Boundless Horizon</em> turned for home with a discovery aboard it that none of its four passengers would ever profit from the way they imagined, and behind it the station turned on, yellow-green and indifferent, having been found at last and not appearing to care.</p>
+<hr />
+<h2 id="part-two---the-coming">Part Two - The Coming</h2>
+<p>You have seen the image. Everyone has seen the image.</p>
+<p>By the time it reaches you it is months old and has been copied a hundred thousand times - the blue star, the twelve-faced shape, the impossible glow that survives even bad compression. It has been on every feed, attached to every rumor, argued over by people who will never go and coveted by the few who can. It has a name now, because everything gets a name: <em>Coyote Peridot.</em> The gemstone, for the color, for the way it came out of the cold and the dark like something formed under pressure. The trickster, for reasons no one quite agreed on but everyone seemed to feel - a world that turned up untouched at the edge of everything, asking to be opened, and a suspicion, shared and unspoken, that nothing is ever that simple.</p>
+<p>Whoever holds the first true claim to a functioning Great Station holds something that has no precedent and therefore no ceiling. The corporations understood that within hours. Morimoto Industries - whose survey ship found it, whose officer leaked it, whose lawyers have been arguing ever since that finding a thing is the same as owning it - moved fastest and hardest, because Morimoto had a head start measured in the most valuable currency there is, which is <em>knowing first.</em> But not only Morimoto. Mercenary firms took contracts they could not fully read. Privateers who had heard it from the inside burned out ahead of the rules. The Institution sent its own, quietly, certain that whoever reached the Core first would decide whether anyone got to <em>understand</em> the place or merely to <em>own</em> it. Four kinds of interest, all converging on the same blue star, all telling themselves the same thing: <em>be first, and the rest is detail.</em></p>
+<p>That is the race. And you are in it, because someone with the money to charter a fast ship decided you were the crew worth betting on.</p>
+<p>Your ship is small and it is <em>quick</em> - built to close distance, not to hold it, the kind of vessel a serious player charters when the prize goes to whoever arrives able to act. You have a faction at your back and a contract in front of you and a reason, particular to you, to be the ones who get inside. Maybe Morimoto's writ is the one you carry, and the corporation that found this place expects you to be the hands that take it. Maybe Morimoto is the name you are racing <em>against</em>, the head start you were hired to erase. The contract does not always say out loud whose interests it serves, and you have learned not to ask questions whose answers only narrow your options. What it says clearly is the part that matters: <em>get there. Get inside. Hold it long enough for the people who hired you to make it real.</em></p>
+<p>The burn is long and then, suddenly, it isn't.</p>
+<p>The blue star grows from a point to a glare to a presence that floods the cockpit and washes the color out of everything, and then the station resolves the way it resolved for the <em>Boundless Horizon</em> - the array straining to round off corners that refuse to round, the shape asserting itself edge by impossible edge, until there is no more pretending it is anything other than what it is. You have seen the image a thousand times. The image did not prepare you. Nothing could. It is <em>enormous</em> in a way that reorganizes your sense of scale, that makes your fast quick clever ship feel like a moth navigating toward a lit window, and it turns, slowly, patiently, returning the blue light in that same low yellow-green, and for a moment - the way it took the survey crew, it takes you - you simply look at it, and the contract goes quiet in your head, and the race goes quiet, and there is only the thing itself, luminous and ancient and waiting.</p>
+<p>Then the proximity alerts pull you back, because you are not alone.</p>
+<p>Other ships hang against the hull already, or are sliding into position around it - corporate haulers, a lean mercenary cutter, the patched and unmistakable profile of a Privateer who got here on instinct and a head start. Some are clamped on. Some are circling, looking for the right facet, the right approach, the place where this sealed and seamless surface might consent to be opened. None of them are inside. You can tell, because all of them are still <em>out here</em>, still working the problem, still pressed against twelve identical faces that offer no door, no airlock, no lock to pick - only surface, vast and smooth and faintly glowing, the same on every face, giving nothing away.</p>
+<p>This is the part the briefings could not teach you, because no one has reliably learned it: the station does not open the way a station opens. It has no entrance you can force. It has a facet, one of twelve, and the facet responds - <em>eventually</em>, to the right kind of contact, in a manner that the few accounts trickling back describe in words like <em>conversation</em> and <em>patience</em> and, in the more honest accounts, <em>luck.</em> You have read the accounts. They do not agree on much. They agree on this: the ones who treated it like a lock stalled at it, and the ones who got further treated it like something that was deciding.</p>
+<p>Your pilot brings you in along the chosen face. Up close the surface fills everything; no longer a shape in space but a horizon, a whole world stood on its edge, yellow-green and seamless and close enough now to touch. The hull holds atmosphere; the readings confirm it, stable and steady and impossibly intact after however many ages it has hung here turning. Whatever is on the other side of this facet is breathing the same kind of breath you are. That should be comforting. It isn't, quite. It is the first sign that the thing you are about to step into was built for living things - just, perhaps, not for yours.</p>
+<p>"Contact in ten," the pilot says. "Bring us flush."</p>
+<p>The ship eases the last meters. There is a long, suspended quiet - the quiet of a small lit room about to touch something far older than the idea of rooms - and then the clamps fire.</p>
+<p>You feel it through the deck before you hear it: the deep structural bite of the ship mating to the hull, the clamps finding purchase on a surface that gives them purchase and offers nothing more, the shudder running up through the frame and into your boots and settling, at last, into stillness. The indicators go green one after another. Seal confirmed. Pressure holding. The ship is fast on the hull of Coyote Peridot, locked to one facet of twelve, and on the other side of that facet is everything no human being has ever seen.</p>
+<p>You gather at the lock. You check your kit because checking your kit is what you do with your hands when the rest of you is somewhere it has never been. Through the viewport the surface is so close it has stopped looking like a wall and started looking like a face - patient, luminous, turned toward you, deciding.</p>
+<p>It does not have a door.</p>
+<p>You are going to have to find out what it has instead.</p>
+<h2 id="---_1">---</h2>
+<h1 id="chapter-2---character-creation">Chapter 2 - Character Creation</h1>
+<h2 id="before-you-begin">Before You Begin</h2>
+<p>Coyote Peridot uses the standard Base10 character creation procedure, with a handful of module-specific choices already made for you:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Choice</th>
+<th style="text-align: left;">Coyote Peridot Setting</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Skill Tier</td>
+<td style="text-align: left;"><strong>Core</strong> (7 Skills)</td>
+</tr>
+<tr>
+<td style="text-align: left;">Professions Available</td>
+<td style="text-align: left;">Shadow, Soldier, Tech, Medic (or none)</td>
+</tr>
+<tr>
+<td style="text-align: left;">Starting Power Tier</td>
+<td style="text-align: left;"><strong>P1, Level 0</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;">Starting Advancement Points</td>
+<td style="text-align: left;">3</td>
+</tr>
+</tbody>
+</table>
+<p>Every character begins the campaign at P1, Level 0, standing at the airlock of a ship freshly clamped to the hull of Coyote Peridot. Character creation happens <strong>before</strong> the Hull Breach opening scene - the first time the party puts their new Attributes and Skills to use is convincing the Station's hull to let them in.</p>
+<p><strong>What you'll need:</strong> this handbook (in particular Chapter 3 - Skills and Chapter 4 - Professions), a character sheet, a pencil, and a way to roll d10s (two d10s - one tens-place, one ones-place - can simulate a d100).</p>
+<p><strong>The six steps, in order:</strong></p>
+<ol>
+<li>Concept &amp; Faction</li>
+<li>Roll Your Attributes</li>
+<li>Choose a Profession</li>
+<li>Spend Starting Advancement Points</li>
+<li>Choose Starting Gear</li>
+<li>Finishing Touches</li>
+</ol>
+<hr />
+<h2 id="step-1---concept--faction">Step 1 - Concept &amp; Faction</h2>
+<p>Before any dice hit the table, decide who this person is. A sentence or two is enough to start: what they did before they signed onto this expedition, why they needed the money or the chance or the escape, what they're hoping to find inside a Station that has never had a single visitor.</p>
+<p>Then choose a <strong>Faction affiliation</strong>. Your character starts the campaign associated with one of the four factions competing to reach the Core:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Faction</th>
+<th style="text-align: left;">Surface Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">The Corporation</td>
+<td style="text-align: left;">Own it. Extract it. Monetize it.</td>
+</tr>
+<tr>
+<td style="text-align: left;">The Mercenary Company</td>
+<td style="text-align: left;">Contracted professionals, terms undisclosed.</td>
+</tr>
+<tr>
+<td style="text-align: left;">The Privateer</td>
+<td style="text-align: left;">First claim. Finder's fee.</td>
+</tr>
+<tr>
+<td style="text-align: left;">The Scientific Institution</td>
+<td style="text-align: left;">Understand it. Preserve it.</td>
+</tr>
+</tbody>
+</table>
+<p>Faction affiliation is a starting position, not a mechanical restriction. It does not limit Profession choice - a Corporate Shadow and an Institutional Shadow are equally valid. It reflects where your character came from and who's currently paying attention to what they do, not what they're capable of.</p>
+<hr />
+<h2 id="step-2---roll-your-attributes">Step 2 - Roll Your Attributes</h2>
+<p>Every character is defined by the same seven fixed Attributes. Their names and meanings never change - only the scores behind them do.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Attribute</th>
+<th style="text-align: left;">Abbr.</th>
+<th style="text-align: left;">Represents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Curiosity</td>
+<td style="text-align: left;">Cu</td>
+<td style="text-align: left;">The drive to explore, question, and discover</td>
+</tr>
+<tr>
+<td style="text-align: left;">Empathy</td>
+<td style="text-align: left;">Em</td>
+<td style="text-align: left;">The capacity to understand and connect with others</td>
+</tr>
+<tr>
+<td style="text-align: left;">Focus</td>
+<td style="text-align: left;">Fo</td>
+<td style="text-align: left;">Sustained attention, precision, and mental discipline</td>
+</tr>
+<tr>
+<td style="text-align: left;">Conditioning</td>
+<td style="text-align: left;">Cn</td>
+<td style="text-align: left;">Physical training and readiness</td>
+</tr>
+<tr>
+<td style="text-align: left;">Intuition</td>
+<td style="text-align: left;">In</td>
+<td style="text-align: left;">Instinctive situational awareness</td>
+</tr>
+<tr>
+<td style="text-align: left;">Versatility</td>
+<td style="text-align: left;">Ve</td>
+<td style="text-align: left;">Adaptability across a wide range of experience</td>
+</tr>
+<tr>
+<td style="text-align: left;">Will</td>
+<td style="text-align: left;">Wi</td>
+<td style="text-align: left;">Inner resolve and mental endurance</td>
+</tr>
+</tbody>
+</table>
+<h3 id="rolling-procedure">Rolling Procedure</h3>
+<p>For each of the seven Attributes, roll <strong>2d10 and keep the higher result</strong>. That's seven rolls total.</p>
+<p>Your table has two ways to handle assignment, and Base10 leaves the choice to you:</p>
+<ul>
+<li><strong>Roll, then assign (recommended for a first character):</strong> Roll all seven 2d10-keep-highest results first, then place them onto whichever Attributes you like.</li>
+<li><strong>Call it, then roll:</strong> Declare which Attribute you're rolling for <em>before</em> you roll it. Riskier, more thematic - you're committing before you know the number.</li>
+</ul>
+<p>Agree on a method as a table before anyone rolls. New players generally have an easier time with "roll, then assign" - it removes the guesswork of committing to an Attribute blind.</p>
+<h3 id="attribute-modifiers">Attribute Modifiers</h3>
+<p>Each score produces a modifier that gets applied to Skill checks. Write these down next to each Attribute now - you'll need them in Step 4.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Score</th>
+<th style="text-align: left;">Modifier</th>
+<th style="text-align: left;"></th>
+<th style="text-align: left;">Score</th>
+<th style="text-align: left;">Modifier</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">9</td>
+<td style="text-align: left;">+4%</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">0%</td>
+</tr>
+<tr>
+<td style="text-align: left;">8</td>
+<td style="text-align: left;">+3%</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">−1%</td>
+</tr>
+<tr>
+<td style="text-align: left;">7</td>
+<td style="text-align: left;">+2%</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">2</td>
+<td style="text-align: left;">−2%</td>
+</tr>
+<tr>
+<td style="text-align: left;">6</td>
+<td style="text-align: left;">+1%</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">1</td>
+<td style="text-align: left;">−3%</td>
+</tr>
+<tr>
+<td style="text-align: left;">5</td>
+<td style="text-align: left;">0%</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">−4%</td>
+</tr>
+</tbody>
+</table>
+<p>Attribute scores can be raised later through Advancement Points earned during play, up to a maximum of 9. Nothing rolled here is permanent except the Attribute itself - the number behind it will grow.</p>
+<hr />
+<h2 id="step-3---choose-a-profession">Step 3 - Choose a Profession</h2>
+<p>A Profession is a permanent identity choice made once, at creation. It defines how your character operates beyond the baseline of Attributes, Skills, and Kit. Four are available in Coyote Peridot, plus the option to play without one. Full Profession details are in Chapter 4.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Profession</th>
+<th style="text-align: left;">Role</th>
+<th style="text-align: left;">Archetype</th>
+<th style="text-align: left;">Associated Kit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Shadow</td>
+<td style="text-align: left;">Faction politics, social encounter, infiltration</td>
+<td style="text-align: left;">Rogue</td>
+<td style="text-align: left;">Neural Lace</td>
+</tr>
+<tr>
+<td style="text-align: left;">Soldier</td>
+<td style="text-align: left;">Combat, direct threat response, group protection</td>
+<td style="text-align: left;">Fighter</td>
+<td style="text-align: left;">Combat Frame</td>
+</tr>
+<tr>
+<td style="text-align: left;">Tech</td>
+<td style="text-align: left;">Interfacing with Station technology, problem-solving</td>
+<td style="text-align: left;">Wizard</td>
+<td style="text-align: left;">Interface Rig</td>
+</tr>
+<tr>
+<td style="text-align: left;">Medic</td>
+<td style="text-align: left;">Sustaining the group, medical/biological assessment</td>
+<td style="text-align: left;">Support</td>
+<td style="text-align: left;">Medical Rig</td>
+</tr>
+</tbody>
+</table>
+<p>Choosing a Profession immediately grants two things: your <strong>Starting Bonuses</strong> and your first <strong>Class Feature</strong> (unlocked at P1).</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Profession</th>
+<th style="text-align: left;">Starting Bonuses</th>
+<th style="text-align: left;">P1 Feature</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Shadow</strong></td>
+<td style="text-align: left;">+1 AP Influence, +1 AP Stealth, +1 Versatility</td>
+<td style="text-align: left;"><strong>Surface Read</strong> - Reroll on Influence checks</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Soldier</strong></td>
+<td style="text-align: left;">+1 AP Physique, +1 AP Perception, +1 Conditioning</td>
+<td style="text-align: left;"><strong>Fire Discipline</strong> - Reroll when committing Attack dice</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Tech</strong></td>
+<td style="text-align: left;">+1 AP Adaptation, +1 AP Composure, +1 Focus</td>
+<td style="text-align: left;"><strong>System Probe</strong> - Reroll on Adaptation checks</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Medic</strong></td>
+<td style="text-align: left;">+1 AP Medicine, +1 AP Influence, +1 Empathy</td>
+<td style="text-align: left;"><strong>Triage</strong> - Reroll on Medicine checks</td>
+</tr>
+</tbody>
+</table>
+<p>Apply the Attribute bonus to your Step 2 scores now (capped at 9). The two Skill bonus points are <strong>pre-allocated and cannot be moved</strong> - they behave exactly like AP you'd spend yourself: if a bonus point is the <em>first</em> point ever placed in that Skill, it activates the Slot (both paired Attribute bonuses now apply) but doesn't add a percentage on its own. A second point - your own, spent in Step 4 - brings it to Skill level 1 and the first +10%.</p>
+<h3 id="playing-without-a-profession">Playing Without a Profession</h3>
+<p>This is always a valid choice. An unclassed character is defined entirely by Attributes, Skills, and Kit - a complete configuration, not a lesser one. You receive no Starting Bonuses and no Class Features, and in exchange carry no professional identity for anyone - or anything - to read. Whether that's an advantage is something the campaign will decide.</p>
+<h3 id="starting-armor">Starting Armor</h3>
+<p>Each Profession starts with a P1 armor piece built around its Associated Kit. All are P1: one mod slot (empty), one strike of passive mitigation.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Profession</th>
+<th style="text-align: left;">Starting Armor</th>
+<th style="text-align: left;">Flavor</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Shadow</td>
+<td style="text-align: left;">Lace-Threaded Weave</td>
+<td style="text-align: left;">A thin undersuit worked with the same sensor-thread as the Neural Lace. Built to disappear under civilian layers, not to stop much.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Soldier</td>
+<td style="text-align: left;">Combat Frame Plating</td>
+<td style="text-align: left;">The Frame's outer shell, doing double duty as structural support and chest protection.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Tech</td>
+<td style="text-align: left;">Insulated Coverall</td>
+<td style="text-align: left;">Heat- and shock-dampened work layer worn under the Interface Rig's harness.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Medic</td>
+<td style="text-align: left;">Trauma Vest</td>
+<td style="text-align: left;">A reinforced vest with quick-access pouches for the Medical Rig's consumables - protective almost by accident.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>(Unclassed)</em></td>
+<td style="text-align: left;">Field Vest</td>
+<td style="text-align: left;">Generic standard-issue plating, no Profession flavor attached.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="step-4---spend-starting-advancement-points">Step 4 - Spend Starting Advancement Points</h2>
+<p>Every character begins with <strong>3 Advancement Points</strong> at Level 0, on top of anything your Profession pre-allocated in Step 3. These are yours to spend freely across Skills and Attributes.</p>
+<h3 id="the-seven-skills">The Seven Skills</h3>
+<p>Coyote Peridot uses the Core Skill Tier - seven Skills, each tied to a pair of Attributes. Full descriptions are in Chapter 3.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Skill</th>
+<th style="text-align: left;">Attribute Pair</th>
+<th style="text-align: left;">Standoff Skill</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Medicine</td>
+<td style="text-align: left;">Curiosity + Empathy</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;">Adaptation</td>
+<td style="text-align: left;">Curiosity + Focus</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;">Influence</td>
+<td style="text-align: left;">Empathy + Intuition</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;">Perception</td>
+<td style="text-align: left;">Focus + Intuition</td>
+<td style="text-align: left;">✓</td>
+</tr>
+<tr>
+<td style="text-align: left;">Stealth</td>
+<td style="text-align: left;">Conditioning + Versatility</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;">Physique</td>
+<td style="text-align: left;">Conditioning + Will</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;">Composure</td>
+<td style="text-align: left;">Versatility + Will</td>
+<td style="text-align: left;"></td>
+</tr>
+</tbody>
+</table>
+<h3 id="how-spending-works">How Spending Works</h3>
+<ul>
+<li>The <strong>first</strong> AP placed in a Skill <em>activates</em> its Slot: both paired Attribute bonuses now apply, but it adds no percentage yet (Skill level 0 = 0%).</li>
+<li><strong>Every AP after that</strong> raises the Skill one level, each level worth +10% to that Skill's base percentage.</li>
+<li>In short: <strong>Skill Bonus = Skill level × 10%.</strong> One AP = level 0 (0%), two AP = level 1 (+10%), three AP = level 2 (+20%), and so on.</li>
+<li>AP can also raise an Attribute score directly, up to the maximum of 9.</li>
+<li>No single Skill or Attribute may exceed 9 points of investment.</li>
+</ul>
+<p>Because Profession Starting Bonus AP is pre-allocated to two specific Skills, a natural move is spending your own AP to bring one or both of those to Skill level 1 (the first real +10%), then using what's left to activate a third Skill - Perception is a strong pick, since it opens every combat Exchange and is one of the three rolls in the Hull Breach scene.</p>
+<h3 id="optional-combat-tier-at-creation">Optional: Combat Tier at Creation</h3>
+<p>Combat Tier is normally a progression track picked up over the course of play, but a P1 character <em>can</em> spend their entire starting AP budget (all 3) to buy <strong>CT1</strong> immediately, choosing one modifier type - Additional Dice, Reroll, or Roll Bonus - as a permanent +1 that applies to every combat roll from here on.</p>
+<p>This is an advanced, optional choice. It trades away all of your starting Skill/Attribute growth for a small, always-on combat edge from the very first Exchange. A first-time player is usually better served spending those 3 AP on Skills and Attributes instead - Combat Tier will still be there to invest in at P2.</p>
+<hr />
+<h2 id="step-5---choose-starting-gear">Step 5 - Choose Starting Gear</h2>
+<p>Gear is selected <strong>after</strong> Faction and Profession are locked in. Every starting weapon is P1 - one mod slot, empty, none hardwired. What you start with is a foundation, not a finished loadout.</p>
+<p>Select:</p>
+<ul>
+<li><strong>One Primary weapon</strong></li>
+<li><strong>One Secondary weapon</strong></li>
+<li><strong>One Backup weapon</strong></li>
+<li><strong>One Skill Gear item</strong> (fills one Pocket slot)</li>
+<li><strong>One Narrative Gear item</strong> (fills the other Pocket slot)</li>
+<li><strong>Chest slot:</strong> your Profession's starting armor from Step 3</li>
+<li><strong>Back slot:</strong> a standard-issue field pack (no stats - pure carry expansion)</li>
+</ul>
+<p>Full flavor text and descriptions for every item below live in Chapter 5 - Starting Equipment. Weapon Slots (Primary/Secondary/Backup) are separate from Carry Slots and don't compete with each other.</p>
+<h3 id="primary-catalog">Primary Catalog</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Weapon</th>
+<th style="text-align: left;">Archetype</th>
+<th style="text-align: left;">Range</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Arc-Maul</td>
+<td style="text-align: left;">Melee</td>
+<td style="text-align: left;">Hand-to-Hand</td>
+</tr>
+<tr>
+<td style="text-align: left;">Vesper Scattergun</td>
+<td style="text-align: left;">Close-Range Projectile</td>
+<td style="text-align: left;">PB 3 / LR 6</td>
+</tr>
+<tr>
+<td style="text-align: left;">PL-40 "Fortywatt" Plasma Rifle</td>
+<td style="text-align: left;">Medium-Range Projectile</td>
+<td style="text-align: left;">PB 6 / LR 12</td>
+</tr>
+<tr>
+<td style="text-align: left;">Voltaic Pike</td>
+<td style="text-align: left;">Melee</td>
+<td style="text-align: left;">Hand-to-Hand</td>
+</tr>
+<tr>
+<td style="text-align: left;">Longshot Designator</td>
+<td style="text-align: left;">Medium-Range Projectile</td>
+<td style="text-align: left;">PB 6 / LR 12</td>
+</tr>
+</tbody>
+</table>
+<h3 id="secondary-catalog">Secondary Catalog</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Weapon</th>
+<th style="text-align: left;">Archetype</th>
+<th style="text-align: left;">Range</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Static Blade</td>
+<td style="text-align: left;">Melee</td>
+<td style="text-align: left;">Hand-to-Hand</td>
+</tr>
+<tr>
+<td style="text-align: left;">Palm Scatter</td>
+<td style="text-align: left;">Close-Range Projectile</td>
+<td style="text-align: left;">PB 2 / LR 4</td>
+</tr>
+<tr>
+<td style="text-align: left;">Reed Carbine</td>
+<td style="text-align: left;">Medium-Range Projectile</td>
+<td style="text-align: left;">PB 4 / LR 8</td>
+</tr>
+<tr>
+<td style="text-align: left;">Arc Saber</td>
+<td style="text-align: left;">Melee</td>
+<td style="text-align: left;">Hand-to-Hand</td>
+</tr>
+<tr>
+<td style="text-align: left;">Riot Pistol</td>
+<td style="text-align: left;">Close-Range Projectile</td>
+<td style="text-align: left;">PB 2 / LR 4</td>
+</tr>
+</tbody>
+</table>
+<h3 id="backup-catalog">Backup Catalog</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Weapon</th>
+<th style="text-align: left;">Archetype</th>
+<th style="text-align: left;">Range</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Combat Knife</td>
+<td style="text-align: left;">Melee</td>
+<td style="text-align: left;">Hand-to-Hand</td>
+</tr>
+<tr>
+<td style="text-align: left;">Twinned Push-Daggers</td>
+<td style="text-align: left;">Melee</td>
+<td style="text-align: left;">Hand-to-Hand</td>
+</tr>
+<tr>
+<td style="text-align: left;">Mono-Edge Tanto</td>
+<td style="text-align: left;">Melee</td>
+<td style="text-align: left;">Hand-to-Hand</td>
+</tr>
+<tr>
+<td style="text-align: left;">Hold-Out Pistol</td>
+<td style="text-align: left;">Close-Range Projectile</td>
+<td style="text-align: left;">PB 1 / LR 2</td>
+</tr>
+<tr>
+<td style="text-align: left;">Shock Prod</td>
+<td style="text-align: left;">Melee</td>
+<td style="text-align: left;">Hand-to-Hand</td>
+</tr>
+</tbody>
+</table>
+<h3 id="skill-gear-choose-one-fills-a-pocket">Skill Gear (choose one, fills a Pocket)</h3>
+<p>Each Skill Gear item grants <strong>+1 Reroll</strong> tied to its named Skill, at P1 value.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Skill</th>
+<th style="text-align: left;">Item Options</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Perception</td>
+<td style="text-align: left;">Field Loupe <em>or</em> Threadcount Lens</td>
+</tr>
+<tr>
+<td style="text-align: left;">Adaptation</td>
+<td style="text-align: left;">Multi-Spanner <em>or</em> Contortionist's Kit</td>
+</tr>
+<tr>
+<td style="text-align: left;">Composure</td>
+<td style="text-align: left;">Counting Chip <em>or</em> Breath-Timer Bead</td>
+</tr>
+<tr>
+<td style="text-align: left;">Stealth</td>
+<td style="text-align: left;">Muffle Wrap <em>or</em> Silent-Step Insoles</td>
+</tr>
+<tr>
+<td style="text-align: left;">Combat</td>
+<td style="text-align: left;">Honing Kit <em>or</em> Zero-Kit</td>
+</tr>
+<tr>
+<td style="text-align: left;">Medicine</td>
+<td style="text-align: left;">Trauma Kit <em>or</em> Suture Pen</td>
+</tr>
+<tr>
+<td style="text-align: left;">Influence</td>
+<td style="text-align: left;">Faction Chit <em>or</em> Introduction Chip</td>
+</tr>
+</tbody>
+</table>
+<h3 id="narrative-gear-choose-one-fills-the-other-pocket">Narrative Gear (choose one, fills the other Pocket)</h3>
+<p>No fixed mechanical effect - these exist to be used well by an attentive player, adjudicated case-by-case by the Custodian. Options include the Hull-Patch Kit, 10m Synth-Cable Coil, Mag-Lock Grapple, Signal Flare/Glow Rod, Field Data Slate, Ration Pack &amp; Reclaimer, Adhesive Grip Pads, Universal Key Shim, Vacuum-Rated Poncho, Handheld Beacon, or (for a laugh) A Field Manual for a Ship That Isn't This One.</p>
+<hr />
+<h2 id="step-6---finishing-touches">Step 6 - Finishing Touches</h2>
+<p>Record your derived stats - these come from your Power Tier, not from any choice made this session:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">At P1, Level 0</th>
+<th style="text-align: left;">Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Tier Bonus</td>
+<td style="text-align: left;">+1</td>
+</tr>
+<tr>
+<td style="text-align: left;">Attack Pool</td>
+<td style="text-align: left;">1d10</td>
+</tr>
+<tr>
+<td style="text-align: left;">Defense Pool</td>
+<td style="text-align: left;">1d10</td>
+</tr>
+<tr>
+<td style="text-align: left;">Strikes per Damage Tier</td>
+<td style="text-align: left;">1</td>
+</tr>
+</tbody>
+</table>
+<p>Fill in the rest of the sheet: name, Faction, Profession and Feature 1, all seven Attribute scores and modifiers, Skill levels and activated Slots, weapons, armor, and Pocket/Back items.</p>
+<p>Your character is now ready. The next thing that happens at the table is the Hull Breach - the Station's first look at who just arrived, resolved with Perception, Adaptation, and Composure rolls before Level 1 formally begins.</p>
+<hr />
+<h2 id="quick-reference-checklist">Quick Reference Checklist</h2>
+<ol>
+<li><strong>Concept &amp; Faction</strong> - write a few lines on who they are; pick Corporation, Mercenary, Privateer, or Institution.</li>
+<li><strong>Roll Attributes</strong> - 2d10 keep-highest × 7, agree on assign-after or call-before as a table.</li>
+<li><strong>Choose a Profession</strong> - Shadow, Soldier, Tech, Medic, or none; apply Starting Bonuses and note Feature 1.</li>
+<li><strong>Spend 3 starting AP</strong> - Skills and/or Attributes (or, optionally, all 3 into Combat Tier CT1).</li>
+<li><strong>Choose Gear</strong> - Primary, Secondary, Backup, Skill Gear, Narrative Gear, Profession armor, field pack.</li>
+<li><strong>Finish the Sheet</strong> - record Tier Bonus, dice pools, and Damage Tier thresholds; you're ready for the Hull Breach.</li>
+</ol>
+<hr />
+<h2 id="worked-example---building-zero">Worked Example - Building Zero</h2>
+<p><strong>Concept &amp; Faction:</strong> Zero signed onto the expedition through a Privateer crew that's been trading favors with three different factions for a decade. Quiet, watchful, more comfortable reading a room than being the center of one. Faction: <strong>Privateer</strong>.</p>
+<p><strong>Attributes:</strong> Zero's table agreed to roll-then-assign. The seven 2d10-keep-highest results came back 7, 5, 8, 4, 7, 6, 5. Zero placed them:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Attribute</th>
+<th style="text-align: left;">Score</th>
+<th style="text-align: left;">Modifier</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Curiosity</td>
+<td style="text-align: left;">7</td>
+<td style="text-align: left;">+2%</td>
+</tr>
+<tr>
+<td style="text-align: left;">Empathy</td>
+<td style="text-align: left;">5</td>
+<td style="text-align: left;">0%</td>
+</tr>
+<tr>
+<td style="text-align: left;">Focus</td>
+<td style="text-align: left;">8</td>
+<td style="text-align: left;">+3%</td>
+</tr>
+<tr>
+<td style="text-align: left;">Conditioning</td>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">0%</td>
+</tr>
+<tr>
+<td style="text-align: left;">Intuition</td>
+<td style="text-align: left;">7</td>
+<td style="text-align: left;">+2%</td>
+</tr>
+<tr>
+<td style="text-align: left;">Versatility</td>
+<td style="text-align: left;">6</td>
+<td style="text-align: left;">+1%</td>
+</tr>
+<tr>
+<td style="text-align: left;">Will</td>
+<td style="text-align: left;">5</td>
+<td style="text-align: left;">0%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Profession:</strong> Zero picks <strong>Shadow</strong>. Starting Bonuses: +1 AP Influence, +1 AP Stealth, +1 Versatility. The Versatility bonus raises that score from 6 to <strong>7</strong> (now +2%). Both Skill bonus points activate their Slots (Influence and Stealth are now active, both paired Attribute bonuses apply to each) but add no percentage yet - they're each the first point in their Skill. Zero also gains <strong>Surface Read</strong>: a Reroll (Chaos Roll) on Influence checks. Starting armor: <strong>Lace-Threaded Weave</strong> (P1, 1 mod slot, 1 strike mitigation).</p>
+<p><strong>Spending 3 Starting AP:</strong> Zero spends:</p>
+<ul>
+<li>1 AP → Influence (now Skill level 1 - the profession's activating point plus this one brings it to <strong>+10%</strong>)</li>
+<li>1 AP → Stealth (same logic - now Skill level 1, <strong>+10%</strong>)</li>
+<li>1 AP → Perception (activates the Slot; 0% for now, but both Focus and Intuition bonuses now apply, and Zero is ready for the Hull Breach and every Standoff to come)</li>
+</ul>
+<p>Zero skips Combat Tier at creation - all 3 AP go to Skills this time.</p>
+<p><strong>Starting Gear:</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Slot</th>
+<th style="text-align: left;">Choice</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Primary</td>
+<td style="text-align: left;">Vesper Scattergun (PB 3 / LR 6)</td>
+</tr>
+<tr>
+<td style="text-align: left;">Secondary</td>
+<td style="text-align: left;">Static Blade (Hand-to-Hand)</td>
+</tr>
+<tr>
+<td style="text-align: left;">Backup</td>
+<td style="text-align: left;">Mono-Edge Tanto (Hand-to-Hand)</td>
+</tr>
+<tr>
+<td style="text-align: left;">Skill Gear (Pocket)</td>
+<td style="text-align: left;">Muffle Wrap (+1 Reroll, Stealth)</td>
+</tr>
+<tr>
+<td style="text-align: left;">Narrative Gear (Pocket)</td>
+<td style="text-align: left;">Field Data Slate</td>
+</tr>
+<tr>
+<td style="text-align: left;">Chest</td>
+<td style="text-align: left;">Lace-Threaded Weave</td>
+</tr>
+<tr>
+<td style="text-align: left;">Back</td>
+<td style="text-align: left;">Standard-issue field pack</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Finishing Touches:</strong> Zero is P1, Level 0. Tier Bonus +1, Attack Pool 1d10, Defense Pool 1d10, 1 strike per Damage Tier. Sheet complete - Zero is standing at the airlock with the rest of the party when the facet starts to glow.</p>
+<h2 id="---_2">---</h2>
+<h1 id="chapter-3---skills">Chapter 3 - Skills</h1>
+<h2 id="overview">Overview</h2>
+<p>Coyote Peridot uses the <strong>Core Skill Tier</strong> - seven Skills drawn from the Base10 Skill Slot matrix. Every Attribute appears in exactly two Skill Slots. This configuration is designed for introductory play: broad enough to support four distinct Professions, focused enough that new players are never choosing between more options than the situation demands.</p>
+<p>The Standoff Skill - used at the opening of every combat Exchange to determine Chain Order and assign the Edge - is <strong>Perception</strong> (Fo–In).</p>
+<p><em>Skill mechanics, including Chaos Rolls, Skill Bonuses, Attribute Bonuses, and the Standoff procedure, are defined in the Base10 System Guide. This chapter defines the Skills themselves - their names, descriptions, and contextual applications within Coyote Peridot.</em></p>
+<hr />
+<h2 id="skill-summary">Skill Summary</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Slot</th>
+<th style="text-align: left;">Attribute Pair</th>
+<th style="text-align: left;">Skill</th>
+<th style="text-align: left;">Standoff Skill</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">1</td>
+<td style="text-align: left;">Cu – Em</td>
+<td style="text-align: left;">Medicine</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;">2</td>
+<td style="text-align: left;">Cu – Fo</td>
+<td style="text-align: left;">Adaptation</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">Em – In</td>
+<td style="text-align: left;">Influence</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">Fo – In</td>
+<td style="text-align: left;">Perception</td>
+<td style="text-align: left;">✓</td>
+</tr>
+<tr>
+<td style="text-align: left;">5</td>
+<td style="text-align: left;">Cn – Ve</td>
+<td style="text-align: left;">Stealth</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;">6</td>
+<td style="text-align: left;">Cn – Wi</td>
+<td style="text-align: left;">Physique</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;">7</td>
+<td style="text-align: left;">Ve – Wi</td>
+<td style="text-align: left;">Composure</td>
+<td style="text-align: left;"></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="skill-descriptions">Skill Descriptions</h2>
+<h3 id="medicine---cuem-curiosity--empathy">Medicine - Cu–Em (Curiosity + Empathy)</h3>
+<p>Medicine is not limited to field treatment. In a Station whose systems have been running for millennia and whose environment has never been measured by human instruments, the Medic is the character responsible for understanding what this environment is doing to the people inside it - and whether that is changing.</p>
+<p>Medicine covers emergency treatment, pharmaceutical assessment, biological analysis, and the ongoing evaluation of human physiology under non-standard conditions. A character investing in Medicine is asking a question the Station has not yet answered: what does prolonged exposure here actually cost?</p>
+<p><em>Curiosity drives the investigation. Empathy calibrates the response - reading a patient, understanding a symptom, knowing the difference between what someone says and what their body is doing.</em></p>
+<h4 id="example-medicine-coyote-peridot"><em>Example: Medicine (Coyote Peridot)</em></h4>
+<p>The group has been inside the Station for hours. One character is reporting disorientation and an unusual metallic taste. The Custodian calls for a Medicine roll. Success tells the Medic that the symptoms match a pattern they have been quietly tracking since the group came aboard - something here is affecting them. Failure means the Medic has data but no framework yet. Either way, the question has changed.</p>
+<hr />
+<h3 id="adaptation---cufo-curiosity--focus">Adaptation - Cu–Fo (Curiosity + Focus)</h3>
+<p>Adaptation is the capacity to encounter something genuinely unfamiliar and reorganize around it rather than defaulting to what you already know. It is not expertise. It is reconfiguration.</p>
+<p>A character with high Adaptation does not necessarily know more than anyone else in the room. They get stuck less. Faced with an alien system, an Adaptation roll is not about prior knowledge of alien systems; it is about the cognitive flexibility to start building a framework from nothing, under pressure, and act on incomplete conclusions. Faced with a human problem that has stopped following recognizable rules, Adaptation is the skill that finds a new angle.</p>
+<p><em>How do you move through a world you don't quite understand?</em> Adaptation is that question, written in plain language.</p>
+<p><em>Curiosity opens the door. Focus builds something usable from what's on the other side.</em></p>
+<h4 id="example-adaptation-coyote-peridot"><em>Example: Adaptation (Coyote Peridot)</em></h4>
+<p>The group finds an unfamiliar device set into a wall. It responds to contact but in no pattern anyone can map to a known system. The Tech attempts an Adaptation roll. Success means they have identified a response loop - not what the interface does, but how to begin a conversation with it. Failure means the interface goes quiet. The Tech knows something went wrong. They do not know what.</p>
+<hr />
+<h3 id="influence---emin-empathy--intuition">Influence - Em–In (Empathy + Intuition)</h3>
+<p>Influence covers the full spectrum of deliberate human interaction: negotiation, persuasion, deception, reading a room, and understanding what someone actually wants beneath what they are saying. In a Station where four factions are competing for the same outcome and none of them are fully disclosing their terms, the ability to navigate that landscape is not a secondary skill.</p>
+<p>Influence does not require honesty. A Shadow using Influence to extract information from a Corporate representative and a Medic using Influence to calm a panicked crew member are making the same roll with very different intentions. The skill does not judge. Others might.</p>
+<p><em>Empathy reads the person. Intuition catches what they are not saying.</em></p>
+<h4 id="example-influence-coyote-peridot"><em>Example: Influence (Coyote Peridot)</em></h4>
+<p>The group needs passage through a section of the Station that a Mercenary unit has locked down. The Shadow attempts an Influence roll to negotiate access without disclosing where the group is headed. Success opens the corridor - and potentially plants a false trail. Failure closes the conversation. The Mercenaries are now watching.</p>
+<hr />
+<h3 id="perception---foin-focus--intuition">Perception - Fo–In (Focus + Intuition)</h3>
+<p>Perception is the Standoff Skill - used at the opening of every combat Exchange to determine Chain Order and assign the Edge. It represents reading a situation for threats before they become immediate: tracking movement, clocking weapons, sensing who is about to break.</p>
+<p>Outside of combat, Perception applies to any situation where the character is assessing an environment or a person for information they are not volunteering. A character scanning a new level of the Station for hazards before the group descends. A Shadow reading a faction representative who is not saying what they mean.</p>
+<p>Perception does not tell a character what is happening. It tells them what is <em>about</em> to happen.</p>
+<p><em>Focus keeps attention deployed where it matters - no wasted observation, no missed signal. Intuition interprets what returns before the conscious mind catches up.</em></p>
+<h4 id="example-perception-coyote-peridot"><em>Example: Perception (Coyote Peridot)</em></h4>
+<p>The group is entering an unexplored space for the first time. Before they move in, the Custodian calls for Perception rolls. The character with the highest result notices something the others missed - a detail in the room that is not quite what it appears to be. This information does not change what happens next. It changes how the group thinks about what happens next.</p>
+<hr />
+<h3 id="stealth---cnve-conditioning--versatility">Stealth - Cn–Ve (Conditioning + Versatility)</h3>
+<p>Stealth covers movement through spaces without detection - physical concealment, noise discipline, behavioral camouflage in social environments, and the ongoing management of presence in a place where presence is a liability. In a Station where noise draws attention and the factions are watching their flanks, the ability to not be noticed is not a niche capability.</p>
+<p>Stealth is the Shadow's most distinctive skill, but its applications extend across all Professions. A Soldier who can move a group through contested space without triggering a security response is not playing a secondary role.</p>
+<p><em>Conditioning moves the body through the space with control - footfall, posture, breath. Versatility adapts the approach when the first one stops working.</em></p>
+<h4 id="example-stealth-coyote-peridot"><em>Example: Stealth (Coyote Peridot)</em></h4>
+<p>The group needs to move through a corridor where a Corporate patrol has established a checkpoint. The Shadow takes point and attempts a Stealth roll to find and exploit a gap in the patrol pattern. Success moves the group through without contact. Failure does not necessarily mean detection; it means the Shadow's read was wrong, and now the group is mid-corridor with no clean exit.</p>
+<hr />
+<h3 id="physique---cnwi-conditioning--will">Physique - Cn–Wi (Conditioning + Will)</h3>
+<p>Physique covers the full range of what a body trained and pushed to its limits can do - and take. It applies when a character needs to apply raw physical force to the world: forcing a sealed door, hauling a crewmate across an unstable floor, throwing something heavy with purpose. It applies equally when the world is applying force to the character: absorbing damage, enduring environmental stress, pushing through injury to complete something that still needs doing.</p>
+<p>These are not two different skills wearing the same name. The body that can force the door is the same body that keeps moving after the door fights back. Physique is the measure of that body - what it has been built to do and what it refuses to stop doing.</p>
+<p>In a Station that has been running for millennia without regard for human tolerances, the physical demands compound as the group descends. What Physique asks of a character at the hull is not what it asks further in. The skill grows with the character. The Station's demands grow faster.</p>
+<p><em>Conditioning is the body that can. Will is the part that does anyway.</em></p>
+<h4 id="example-physique-coyote-peridot"><em>Example: Physique (Coyote Peridot)</em></h4>
+<p>A pressure door has partially sealed; the mechanism is intact but the frame has warped, and the manual override requires force the mechanism was not designed to need. The Custodian calls for a Physique roll. Success forces the door and the group moves through. Failure does not mean the character stops trying. It means the door has not moved, something in the attempt has cost the character, and the corridor behind them is no longer as quiet as it was.</p>
+<hr />
+<h3 id="composure---vewi-versatility--will">Composure - Ve–Wi (Versatility + Will)</h3>
+<p>Composure is the skill of remaining functional when the situation is actively working against that outcome. It applies when the Station's environment becomes hostile in ways that are not physical - psychological pressure, sensory disorientation, the cumulative weight of prolonged exposure to spaces that were not designed for human beings. It also applies when a plan has failed completely and the group needs someone who can still act.</p>
+<p>Composure is not the same as not being affected. It is continuing to operate in spite of being affected. A character who fails a Composure roll is not broken; they are human, in a place that is indifferent to that fact, making decisions under conditions that no amount of training fully prepares for.</p>
+<p>Every Profession benefits from Composure. The Station is designed to need it.</p>
+<p><em>Versatility finds the functional response in an unfamiliar situation. Will sustains it.</em></p>
+<h4 id="example-composure-coyote-peridot"><em>Example: Composure (Coyote Peridot)</em></h4>
+<p>The group steps into a space whose scale and purpose none of them anticipated, and nothing in their training has a name for it. The Custodian calls for Composure rolls. Success means the character processes what they are seeing and remains capable of action. Failure does not incapacitate them. It means they act from a compromised position - and how they handle that matters too.</p>
+<hr />
+<h2 id="profession-skill-relationships">Profession Skill Relationships</h2>
+<p>No Skill is exclusive to a single Profession. The table below reflects primary and secondary relationships - where a Profession is most likely to invest and which Skills extend their capability into adjacent roles.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Skill</th>
+<th style="text-align: left;">Primary Profession</th>
+<th style="text-align: left;">Secondary Access</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Medicine</td>
+<td style="text-align: left;">Medic</td>
+<td style="text-align: left;">Any character tracking the Station's biological effects</td>
+</tr>
+<tr>
+<td style="text-align: left;">Adaptation</td>
+<td style="text-align: left;">Tech</td>
+<td style="text-align: left;">All - the Station eventually demands it from everyone</td>
+</tr>
+<tr>
+<td style="text-align: left;">Influence</td>
+<td style="text-align: left;">Shadow</td>
+<td style="text-align: left;">Medic, any character navigating faction relationships</td>
+</tr>
+<tr>
+<td style="text-align: left;">Perception</td>
+<td style="text-align: left;">All</td>
+<td style="text-align: left;">- Standoff Skill, universal relevance</td>
+</tr>
+<tr>
+<td style="text-align: left;">Stealth</td>
+<td style="text-align: left;">Shadow</td>
+<td style="text-align: left;">Soldier (group movement), any character avoiding notice</td>
+</tr>
+<tr>
+<td style="text-align: left;">Physique</td>
+<td style="text-align: left;">Soldier</td>
+<td style="text-align: left;">Any character who cannot afford to be helpless</td>
+</tr>
+<tr>
+<td style="text-align: left;">Composure</td>
+<td style="text-align: left;">All</td>
+<td style="text-align: left;">- the Station is designed to need it</td>
+</tr>
+</tbody>
+</table>
+<h2 id="---_3">---</h2>
+<h1 id="chapter-4---professions">Chapter 4 - Professions</h1>
+<h2 id="overview_1">Overview</h2>
+<p>A <strong>Profession</strong> is Coyote Peridot's implementation of the Base10 Class system. Every character belongs to one Profession, chosen at character creation. That choice is permanent. A Profession is not a role that can be reassigned; it is a dimension of identity, as fixed as the Attributes that define the character's nature.</p>
+<p>Four Professions are available in Coyote Peridot. They are not faction-locked. A Corporate Shadow and an Institutional Shadow are both possible. The Profession is a skill set and a way of operating, not an ideology.</p>
+<p>Each Profession consists of the following:</p>
+<ul>
+<li><strong>Five Class Features</strong> - one unlocked at the .0 stage of each Power Tier (levels 0, 2, 4, 6, and 8)</li>
+<li><strong>Starting Bonuses</strong> - pre-allocated Advancement Points and Attribute increases awarded at character creation, in addition to the standard 3 starting AP</li>
+<li><strong>Associated Kit</strong> - a signature item the Profession is mechanically built around</li>
+</ul>
+<p><em>The Class framework governing Profession mechanics - including Feature types, Starting Bonus rules, Tier Bonus caps, and the distinction between modifier types and Passive Effects - is defined in the Base10 System Guide. This chapter defines the Professions themselves within that framework.</em></p>
+<hr />
+<h2 id="playing-without-a-profession_1">Playing Without a Profession</h2>
+<p>Playing without a Profession is always valid. A character defined entirely by their Attributes, Skills, and Kit is a complete and functional configuration. No mechanical gap is created by the absence of a Profession.</p>
+<p>In Coyote Peridot, a character without a Profession is not a character without a purpose. They are the character the system has no category for - someone whose history is too varied, too interrupted, or too deliberate to fit a single professional frame. The Station does not care what your credentials are.</p>
+<p>An unclassed character receives no Starting Bonuses and no Class Features. In exchange, they carry no professional identity that can be read against them. Whether that is an advantage is something the campaign will determine.</p>
+<hr />
+<h2 id="shadow">Shadow</h2>
+<p><em>Every shadow holds information. The question is whether you can read it.</em></p>
+<p>The Shadow operates in the spaces between declared intentions - reading people, moving through environments without friction, and acting on information others don't know they've given away. In a Station full of factions with competing agendas, the Shadow is the character who knows what everyone actually wants before the meeting starts.</p>
+<p>The Shadow's power is informational. Their mechanical arc is about expanding access - more situations where their read on people and environments translates into advantage. By P5, the Shadow is operating in multiple registers simultaneously: social, physical, and informational.</p>
+<p><strong>Role:</strong> Navigating human politics, faction tension, and social encounter.</p>
+<p><strong>Archetype:</strong> Rogue</p>
+<h3 id="associated-kit---neural-lace">Associated Kit - Neural Lace</h3>
+<p>The Neural Lace is a subdermal sensory augmentation that sharpens social and environmental reads. Passive enhancement, not a weapon. Micro-expression analysis, pheromone detection, ambient signal interception; the Lace feeds data into the Shadow's awareness below the threshold of conscious processing. They notice things they cannot explain noticing.</p>
+<p>Higher-grade Laces expand the Lace's passive coverage and reduce the latency between signal and read. At peak grade, the Shadow is processing more information than they could consciously track - and acting on it correctly anyway.</p>
+<h3 id="starting-bonuses">Starting Bonuses</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Bonus Type</th>
+<th style="text-align: left;">Target</th>
+<th style="text-align: left;">Amount</th>
+<th style="text-align: left;">Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Skill Starting Bonus</td>
+<td style="text-align: left;">Influence</td>
+<td style="text-align: left;">+1 AP</td>
+<td style="text-align: left;">Activates the Influence Slot (Skill level 0, +0%)</td>
+</tr>
+<tr>
+<td style="text-align: left;">Skill Starting Bonus</td>
+<td style="text-align: left;">Stealth</td>
+<td style="text-align: left;">+1 AP</td>
+<td style="text-align: left;">Activates the Stealth Slot (Skill level 0, +0%)</td>
+</tr>
+<tr>
+<td style="text-align: left;">Attribute Starting Bonus</td>
+<td style="text-align: left;">Versatility</td>
+<td style="text-align: left;">+1</td>
+<td style="text-align: left;">Versatility Attribute score increases by 1 at character creation</td>
+</tr>
+</tbody>
+</table>
+<p>These bonuses are awarded at character creation in addition to the character's normal 3 starting Advancement Points. Skill bonuses are pre-allocated and cannot be reallocated. As with any first point in a Skill, a bonus point activates the Slot but adds no percentage; a second point brings the Skill to level 1 (+10%). The Versatility bonus is applied before play begins and is subject to the standard Attribute maximum of 9.</p>
+<h3 id="class-features">Class Features</h3>
+<p><strong>P1 - Surface Read</strong>
+The Lace's micro-expression and pheromone analysis gives the Shadow an edge in any social encounter. When attempting an Influence Skill roll, the Shadow gains a Reroll (Chaos Roll).</p>
+<p><strong>P2 - Ghost</strong>
+The Shadow has learned to move through spaces and systems without leaving a trace. When attempting a Stealth Skill roll, the Shadow gains a Reroll (Chaos Roll).</p>
+<p><strong>P3 - Tell</strong>
+Under pressure, the Shadow identifies and acts on a critical vulnerability in an opponent - a hesitation, a misread, a moment of exposure. Once per Exchange, when the Shadow commits Attack dice, they may apply a Roll Bonus to that attack pool.</p>
+<p><strong>P4 - Parallel Read</strong>
+The Shadow's upgraded Lace allows simultaneous management of social and physical awareness. Passive Effect: the Shadow may use Influence or Stealth during an Exchange without forfeiting their Defense Pool. Their Attack Pool is still forfeited. They remain a valid target and must respond to incoming attacks with no Attack dice available to counter.</p>
+<p><strong>P5 - Full Spectrum</strong>
+At peak capability, the Shadow operates across social, physical, and informational registers simultaneously. Passive Effect: defined at the Custodian level based on campaign context and the Shadow's established capabilities. Specific mechanical expression is Custodian-adjudicated within module-defined parameters.</p>
+<hr />
+<h2 id="soldier">Soldier</h2>
+<p><em>The Station doesn't care about your feelings. Neither does the person shooting at you.</em></p>
+<p>The Soldier is trained for direct confrontation and has the discipline to function when everything else has gone wrong. Not a blunt instrument - a calibrated one. In a Station where not every threat is human and not every danger can be predicted, the Soldier is the character the group relies on when the situation stops being manageable.</p>
+<p>The Soldier's power is reliability. Their mechanical arc is about sustaining performance under conditions that degrade everyone else - more dice, better dice, and the capacity to keep functioning when the situation is actively working against it. By P5, the Soldier is the most consistently dangerous combatant in any Exchange.</p>
+<p><strong>Role:</strong> Combat, direct threat response, group protection.</p>
+<p><strong>Archetype:</strong> Fighter</p>
+<h3 id="associated-kit---combat-frame">Associated Kit - Combat Frame</h3>
+<p>The Combat Frame is a tactical exosuit layer - not full armor, not a weapon. A structural enhancement that extends the Soldier's physical capability and keeps them in the fight longer. Impact absorption, joint stabilization, reactive positioning assist. The Frame is the reason the Soldier can absorb what would stop anyone else and keep moving.</p>
+<p>Higher-grade Frames extend the Frame's mechanical benefits and expand its reactive capacity. At peak grade, the Frame and the Soldier have become a single system; each responding to the other before conscious decision-making catches up.</p>
+<h3 id="starting-bonuses_1">Starting Bonuses</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Bonus Type</th>
+<th style="text-align: left;">Target</th>
+<th style="text-align: left;">Amount</th>
+<th style="text-align: left;">Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Skill Starting Bonus</td>
+<td style="text-align: left;">Physique</td>
+<td style="text-align: left;">+1 AP</td>
+<td style="text-align: left;">Activates the Physique Slot (Skill level 0, +0%)</td>
+</tr>
+<tr>
+<td style="text-align: left;">Skill Starting Bonus</td>
+<td style="text-align: left;">Perception</td>
+<td style="text-align: left;">+1 AP</td>
+<td style="text-align: left;">Activates the Perception Slot (Skill level 0, +0%)</td>
+</tr>
+<tr>
+<td style="text-align: left;">Attribute Starting Bonus</td>
+<td style="text-align: left;">Conditioning</td>
+<td style="text-align: left;">+1</td>
+<td style="text-align: left;">Conditioning Attribute score increases by 1 at character creation</td>
+</tr>
+</tbody>
+</table>
+<p>These bonuses are awarded at character creation in addition to the character's normal 3 starting Advancement Points. Skill bonuses are pre-allocated and cannot be reallocated. As with any first point in a Skill, a bonus point activates the Slot but adds no percentage; a second point brings the Skill to level 1 (+10%). The Conditioning bonus is applied before play begins and is subject to the standard Attribute maximum of 9.</p>
+<h3 id="class-features_1">Class Features</h3>
+<p><strong>P1 - Fire Discipline</strong>
+The Soldier's training produces precise, controlled engagement. When committing Attack dice in an Exchange, the Soldier gains a Reroll.</p>
+<p><strong>P2 - Hold the Line</strong>
+The Frame's structural support extends to defense as much as offense. When committing Defense dice in an Exchange, the Soldier gains a Reroll.</p>
+<p><strong>P3 - Suppression</strong>
+The Soldier deliberately overwhelms a target - volume, positioning, and pressure applied as a system. Once per Exchange, when the Soldier commits Attack dice, they may apply a Roll Bonus to that attack pool.</p>
+<p><strong>P4 - Battle Rhythm</strong>
+The Soldier has internalized the pace of an Exchange to the point where other demands do not break it. Passive Effect: the Soldier does not forfeit their Defense Pool when using a Skill during an Exchange. Their Attack Pool is still forfeited. They remain a valid target and must respond to incoming attacks with no Attack dice available to counter.</p>
+<p><strong>P5 - Combat Apex</strong>
+At peak capability, the Soldier is the most reliable combatant in any Exchange under any conditions. Passive Effect: defined at the Custodian level based on campaign context and the Soldier's established capabilities. Specific mechanical expression is Custodian-adjudicated within module-defined parameters.</p>
+<hr />
+<h2 id="tech">Tech</h2>
+<p><em>You don't have to understand something to use it. But it helps.</em></p>
+<p>The Tech interfaces with systems - human and alien alike. They are the character most likely to make progress on what the Station's instruments are actually measuring and what its systems were built to do. They are also the character most likely to break something by learning from it.</p>
+<p>The Tech's power is access. Their mechanical arc is about expanding what counts as a system - starting with the familiar, ending with the entirely alien. By P5, the Tech is capable of engaging simultaneously with multiple systems, including potentially the Station's own infrastructure.</p>
+<p><strong>Role:</strong> Interfacing with Station technology, system analysis, problem-solving.</p>
+<p><strong>Archetype:</strong> Wizard</p>
+<h3 id="associated-kit---interface-rig">Associated Kit - Interface Rig</h3>
+<p>The Interface Rig is a suite of hardware and software for engaging with both human and alien systems. Physical connection points, signal analyzers, adaptive translation layers, and a processing core that learns from every interface attempt - including the failed ones. The Rig is not a weapon. It is a vocabulary, expanding with use.</p>
+<p>Higher-grade Rigs extend simultaneous connection capacity and reduce the cost of failed attempts. At peak grade, the Rig has accumulated enough interface history that it approaches alien systems with something like prior knowledge - pattern recognition built from every system the Tech has ever touched.</p>
+<h3 id="starting-bonuses_2">Starting Bonuses</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Bonus Type</th>
+<th style="text-align: left;">Target</th>
+<th style="text-align: left;">Amount</th>
+<th style="text-align: left;">Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Skill Starting Bonus</td>
+<td style="text-align: left;">Adaptation</td>
+<td style="text-align: left;">+1 AP</td>
+<td style="text-align: left;">Activates the Adaptation Slot (Skill level 0, +0%)</td>
+</tr>
+<tr>
+<td style="text-align: left;">Skill Starting Bonus</td>
+<td style="text-align: left;">Composure</td>
+<td style="text-align: left;">+1 AP</td>
+<td style="text-align: left;">Activates the Composure Slot (Skill level 0, +0%)</td>
+</tr>
+<tr>
+<td style="text-align: left;">Attribute Starting Bonus</td>
+<td style="text-align: left;">Focus</td>
+<td style="text-align: left;">+1</td>
+<td style="text-align: left;">Focus Attribute score increases by 1 at character creation</td>
+</tr>
+</tbody>
+</table>
+<p>These bonuses are awarded at character creation in addition to the character's normal 3 starting Advancement Points. Skill bonuses are pre-allocated and cannot be reallocated. As with any first point in a Skill, a bonus point activates the Slot but adds no percentage; a second point brings the Skill to level 1 (+10%). The Focus bonus is applied before play begins and is subject to the standard Attribute maximum of 9.</p>
+<h3 id="class-features_2">Class Features</h3>
+<p><strong>P1 - System Probe</strong>
+The Rig's adaptive translation layer gives the Tech a meaningful first contact with any unknown system. When attempting an Adaptation Skill roll, the Tech gains a Reroll (Chaos Roll).</p>
+<p><strong>P2 - Redundancy</strong>
+The Tech has learned to build fallback positions - in systems, in plans, and in themselves. When attempting a Composure Skill roll, the Tech gains a Reroll (Chaos Roll).</p>
+<p><strong>P3 - Exploit</strong>
+The Tech identifies a critical vulnerability in a target system or opponent and acts on it before the window closes. Once per Exchange, when the Tech commits Attack dice, they may apply a Roll Bonus to that attack pool.</p>
+<p><strong>P4 - Background Process</strong>
+The upgraded Rig manages active interface tasks independently, freeing the Tech's attention for the immediate situation. Passive Effect: the Tech may use Adaptation during an Exchange without forfeiting their Defense Pool. Their Attack Pool is still forfeited. They remain a valid target and must respond to incoming attacks with no Attack dice available to counter.</p>
+<p><strong>P5 - Deep Access</strong>
+At peak capability, the Tech achieves simultaneous management of multiple systems - potentially including Station infrastructure itself. Passive Effect: defined at the Custodian level based on campaign context and the Tech's established capabilities. Specific mechanical expression is Custodian-adjudicated within module-defined parameters.</p>
+<hr />
+<h2 id="medic">Medic</h2>
+<p><em>Everyone is fine until they aren't.</em></p>
+<p>The Medic keeps the group functional. In a Station where the hazards are poorly understood and help is far away, this is not a secondary role. The Medic is also the character with the most complete picture of what the Station is doing to the people inside it - physiologically, psychologically, and otherwise. In an advanced setting, the Medic carries more weight than a combat medic. They are the character tracking what prolonged exposure to Coyote Peridot actually costs.</p>
+<p>The Medic's power is sustainability and understanding. Their mechanical arc is about expanding care - from immediate treatment to biological assessment to something that begins to look like ecological understanding of the Station itself. By P5, the Medic's read on the Station's biology extends beyond human physiology into whatever the Station is producing.</p>
+<p><strong>Role:</strong> Sustaining the group, managing consequences, medical and biological assessment.</p>
+<p><strong>Archetype:</strong> Support</p>
+<h3 id="associated-kit---medical-rig">Associated Kit - Medical Rig</h3>
+<p>The Medical Rig is a compact diagnostic and treatment suite. Bioscanners, pharmaceutical synthesizers, tissue repair systems, and an environmental analysis layer that tracks atmospheric composition, biological contaminants, and physiological stress indicators. The Rig is always running - always taking readings, always comparing current data against baseline.</p>
+<p>Higher-grade Rigs expand diagnostic range and treatment capacity. At peak grade, the Medical Rig is capable of assessing alien biology, not just human - building frameworks for organisms it has never encountered from first principles, the same way a good Medic does.</p>
+<h3 id="starting-bonuses_3">Starting Bonuses</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Bonus Type</th>
+<th style="text-align: left;">Target</th>
+<th style="text-align: left;">Amount</th>
+<th style="text-align: left;">Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Skill Starting Bonus</td>
+<td style="text-align: left;">Medicine</td>
+<td style="text-align: left;">+1 AP</td>
+<td style="text-align: left;">Activates the Medicine Slot (Skill level 0, +0%)</td>
+</tr>
+<tr>
+<td style="text-align: left;">Skill Starting Bonus</td>
+<td style="text-align: left;">Influence</td>
+<td style="text-align: left;">+1 AP</td>
+<td style="text-align: left;">Activates the Influence Slot (Skill level 0, +0%)</td>
+</tr>
+<tr>
+<td style="text-align: left;">Attribute Starting Bonus</td>
+<td style="text-align: left;">Empathy</td>
+<td style="text-align: left;">+1</td>
+<td style="text-align: left;">Empathy Attribute score increases by 1 at character creation</td>
+</tr>
+</tbody>
+</table>
+<p>These bonuses are awarded at character creation in addition to the character's normal 3 starting Advancement Points. Skill bonuses are pre-allocated and cannot be reallocated. As with any first point in a Skill, a bonus point activates the Slot but adds no percentage; a second point brings the Skill to level 1 (+10%). The Empathy bonus is applied before play begins and is subject to the standard Attribute maximum of 9.</p>
+<h3 id="class-features_3">Class Features</h3>
+<p><strong>P1 - Triage</strong>
+Fast assessment, faster response. The Rig is already running diagnostics before the Medic consciously decides to act. When attempting a Medicine Skill roll, the Medic gains a Reroll (Chaos Roll).</p>
+<p><strong>P2 - Bedside Manner</strong>
+The Medic's reads on people are clinical as much as social - they understand what a body under stress does to the person inside it. When attempting an Influence Skill roll, the Medic gains a Reroll (Chaos Roll).</p>
+<p><strong>P3 - Stabilize</strong>
+The Medic keeps the group in the fight by managing the consequences of the fight in real time. Passive Effect: once per Exchange, the Medic may prevent one teammate from advancing a Damage Tier when they would otherwise do so. The Medic is not attacking - they are managing what the Exchange is costing the group.</p>
+<p><strong>P4 - Field Assessment</strong>
+The Rig handles active diagnostic work independently, allowing the Medic to maintain situational awareness while it runs. Passive Effect: the Medic may use Medicine during an Exchange without forfeiting their Defense Pool. Their Attack Pool is still forfeited. They remain a valid target and must respond to incoming attacks with no Attack dice available to counter.</p>
+<p><strong>P5 - Full Spectrum Care</strong>
+At peak capability, the Medic's biological understanding extends beyond human physiology - into the Station's own systems, its outputs, and whatever it is doing to the people inside it. Passive Effect: defined at the Custodian level based on campaign context and the Medic's established capabilities. Specific mechanical expression is Custodian-adjudicated within module-defined parameters.</p>
+<h2 id="---_4">---</h2>
+<h1 id="chapter-5---starting-equipment">Chapter 5 - Starting Equipment</h1>
+<p><em>This is the starting armory - what a character walks onto the hull with, before the facet ever opens. It covers Weapon Slots (Primary, Secondary, Backup) and Carry Slots (Right Pocket, Left Pocket, Back). Armor occupies the Chest carry slot and is issued at character creation according to Profession - see Starting Armor in Chapter 2.</em></p>
+<hr />
+<h2 id="how-to-use---starting-equipment">How to Use - Starting Equipment</h2>
+<p>At character creation, after Profession and Faction are chosen, the player selects:</p>
+<ul>
+<li><strong>One Primary weapon</strong> from the Primary catalog</li>
+<li><strong>One Secondary weapon</strong> from the Secondary catalog</li>
+<li><strong>One Backup weapon</strong> from the Backup catalog</li>
+<li><strong>One Skill Gear item</strong>, filling one Pocket slot</li>
+<li><strong>One Narrative Gear item</strong>, filling the other Pocket slot</li>
+</ul>
+<p>The Back slot holds a standard-issue field pack. It has no mechanical stats of its own — per the System Guide, backpacks are pure carry expansion — but the Custodian may allow a second Narrative Gear pick into it at session zero if the table wants a slightly more generous loadout. That's a table-by-table call, not a rule.</p>
+<p>All starting weapons are <strong>P1</strong> — one mod slot, empty, ready for whatever the party finds on Level 1. None are hardwired. What a character starts with is a foundation, not a finished build.</p>
+<h3 id="weapon-range-profiles-baseline-p1">Weapon Range Profiles (Baseline, P1)</h3>
+<p>The System Guide leaves specific range numbers to the Content Module. These are the Coyote Peridot baselines for starting gear. Point Blank and Long Range are both measured in hexes from the <em>Movement</em> section's range categories.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Weapon Archetype</th>
+<th style="text-align: center;">Point Blank Max</th>
+<th style="text-align: center;">Long Range Max</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Melee (Hand-to-Hand only)</td>
+<td style="text-align: center;">—</td>
+<td style="text-align: center;">—</td>
+</tr>
+<tr>
+<td style="text-align: left;">Close-Range Projectile — Primary</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;">6</td>
+</tr>
+<tr>
+<td style="text-align: left;">Close-Range Projectile — Secondary</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">4</td>
+</tr>
+<tr>
+<td style="text-align: left;">Close-Range Projectile — Hold-Out</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">2</td>
+</tr>
+<tr>
+<td style="text-align: left;">Medium-Range Projectile — Primary</td>
+<td style="text-align: center;">6</td>
+<td style="text-align: center;">12</td>
+</tr>
+<tr>
+<td style="text-align: left;">Medium-Range Projectile — Secondary</td>
+<td style="text-align: center;">4</td>
+<td style="text-align: center;">8</td>
+</tr>
+</tbody>
+</table>
+<p>Most Backup weapons are Hand-to-Hand by design — they're what's left when the fight is already on top of you. The Hold-Out Pistol is the exception: a last-ditch firearm, not a blade, for a character who wants a Backup option with reach.</p>
+<hr />
+<h2 id="primary-weapon-catalog">Primary Weapon Catalog</h2>
+<p><em>The main weapon. Typically the largest or most capable thing a character carries, and the one that says the most about who they are before they say a word.</em></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Weapon</th>
+<th style="text-align: left;">Archetype</th>
+<th style="text-align: left;">Range Profile</th>
+<th style="text-align: center;">Mod Slots</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Arc-Maul</strong></td>
+<td style="text-align: left;">Sci-Fi Melee</td>
+<td style="text-align: left;">Hand-to-Hand</td>
+<td style="text-align: center;">1 (empty)</td>
+<td style="text-align: left;">A capacitor-edged maul built off a modified entrenching tool frame. Ugly, heavy, and it hums when it's about to hit something. Common among expedition crews who expected to be digging, not fighting.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Vesper Scattergun</strong></td>
+<td style="text-align: left;">Close-Range Projectile</td>
+<td style="text-align: left;">PB 3 / LR 6</td>
+<td style="text-align: center;">1 (empty)</td>
+<td style="text-align: left;">A magnetically-cycled scattergun that throws a fanning burst of flechettes. Loud, forgiving of bad aim at close quarters, useless past a corridor's width.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>PL-40 "Fortywatt" Phased Plasma Rifle</strong></td>
+<td style="text-align: left;">Medium-Range Projectile</td>
+<td style="text-align: left;">PB 6 / LR 12</td>
+<td style="text-align: center;">1 (empty)</td>
+<td style="text-align: left;">A phased plasma rifle, in the 40 watt range — the wattage dial is soldered at factory-default and nobody in the expedition has the clearance to unlock it further. Whoever issued these clearly wanted something dependable, not flashy. Puts a controlled, superheated bolt downrange with a low hum and an afterimage that lingers a second too long.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Voltaic Pike</strong></td>
+<td style="text-align: left;">Sci-Fi Melee</td>
+<td style="text-align: left;">Hand-to-Hand</td>
+<td style="text-align: center;">1 (empty)</td>
+<td style="text-align: left;">A two-meter haft tipped with a charged point, standard issue to whoever drew the short straw on forward clearance duty. Reach and a jolt, in one unwieldy package.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Longshot Designator</strong></td>
+<td style="text-align: left;">Medium-Range Projectile</td>
+<td style="text-align: left;">PB 6 / LR 12</td>
+<td style="text-align: center;">1 (empty)</td>
+<td style="text-align: left;">A slow-cycling marksman's rifle built around a targeting laser that paints its target a full second before the round arrives. Overbuilt for anything the party has met so far, which is either reassuring or a bad sign.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="secondary-weapon-catalog">Secondary Weapon Catalog</h2>
+<p><em>The sidearm. Drawn when the Primary is holstered, out of ammo, or wrong for the room.</em></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Weapon</th>
+<th style="text-align: left;">Archetype</th>
+<th style="text-align: left;">Range Profile</th>
+<th style="text-align: center;">Mod Slots</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Static Blade</strong></td>
+<td style="text-align: left;">Sci-Fi Melee</td>
+<td style="text-align: left;">Hand-to-Hand</td>
+<td style="text-align: center;">1 (empty)</td>
+<td style="text-align: left;">A short, single-edged vibro-blade with a charged rail along the spine. Quiet, quick, and doesn't need a reload — the closest thing to a promise a weapon can make.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Palm Scatter</strong></td>
+<td style="text-align: left;">Close-Range Projectile</td>
+<td style="text-align: left;">PB 2 / LR 4</td>
+<td style="text-align: center;">1 (empty)</td>
+<td style="text-align: left;">A compact, heavy-framed scattergun sized for one hand. Short-ranged even by scattergun standards, but it fits in a coat and it stops an argument fast.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Reed Carbine</strong></td>
+<td style="text-align: left;">Medium-Range Projectile</td>
+<td style="text-align: left;">PB 4 / LR 8</td>
+<td style="text-align: center;">1 (empty)</td>
+<td style="text-align: left;">A slim, folding-stock carbine — the compact cousin of a rifle, built for someone who needs reach without needing to commit both hands to it.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Arc Saber</strong></td>
+<td style="text-align: left;">Sci-Fi Melee</td>
+<td style="text-align: left;">Hand-to-Hand</td>
+<td style="text-align: center;">1 (empty)</td>
+<td style="text-align: left;">A curved, single-edged blade with a charged core running the length of the spine. Slower to draw than the Static Blade, harder to argue with once it's out.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Riot Pistol</strong></td>
+<td style="text-align: left;">Close-Range Projectile</td>
+<td style="text-align: left;">PB 2 / LR 4</td>
+<td style="text-align: center;">1 (empty)</td>
+<td style="text-align: left;">A heavy-framed repeating pistol built for crowd control before it was repurposed for whatever the Station throws at its owner instead.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="backup-weapon-catalog">Backup Weapon Catalog</h2>
+<p><em>Last resort. What's still on you when everything else has failed or been dropped.</em></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Weapon</th>
+<th style="text-align: left;">Archetype</th>
+<th style="text-align: left;">Range Profile</th>
+<th style="text-align: center;">Mod Slots</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Combat Knife</strong></td>
+<td style="text-align: left;">Sci-Fi Melee</td>
+<td style="text-align: left;">Hand-to-Hand</td>
+<td style="text-align: center;">1 (empty)</td>
+<td style="text-align: left;">Standard-issue, full tang, serrated along one edge. Every faction stocks a version of this. Nobody remembers whose design it originally was.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Twinned Push-Daggers</strong></td>
+<td style="text-align: left;">Sci-Fi Melee</td>
+<td style="text-align: left;">Hand-to-Hand</td>
+<td style="text-align: center;">1 (empty)</td>
+<td style="text-align: left;">A matched pair of short punch-daggers, worn knuckle-forward. Favored by crews who expect to be grabbed before they're shot.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Mono-Edge Tanto</strong></td>
+<td style="text-align: left;">Sci-Fi Melee</td>
+<td style="text-align: left;">Hand-to-Hand</td>
+<td style="text-align: center;">1 (empty)</td>
+<td style="text-align: left;">A short, single-edged blade with a molecularly-honed edge that holds its keenness far longer than it has any right to. Ceremonial in its home culture, entirely practical out here.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Hold-Out Pistol</strong></td>
+<td style="text-align: left;">Close-Range Projectile (Hold-Out)</td>
+<td style="text-align: left;">PB 1 / LR 2</td>
+<td style="text-align: center;">1 (empty)</td>
+<td style="text-align: left;">A single-stack palm pistol, small enough to disappear into a boot or a sleeve. Not accurate past arm's reach, but it fires, and that's the only promise a Backup weapon is required to keep.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Shock Prod</strong></td>
+<td style="text-align: left;">Sci-Fi Melee</td>
+<td style="text-align: left;">Hand-to-Hand</td>
+<td style="text-align: center;">1 (empty)</td>
+<td style="text-align: left;">A telescoping baton with a charged tip, standard less-lethal issue for crews who'd rather not explain a body to their faction's legal department. Still hits like a decision.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="skill-gear">Skill Gear</h2>
+<p><em>A small tool, kit, or rig built around one of the seven Core skills. Occupies one Pocket slot. Each grants <strong>+1 Reroll (Chaos Roll, named Skill only)</strong>, at P1 value. Two flavor options are offered per skill, sharing the identical effect — pick whichever fits the character.</em></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Skill</th>
+<th style="text-align: left;">Item</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Perception</strong></td>
+<td style="text-align: left;">Field Loupe <strong>or</strong> Threadcount Lens</td>
+<td style="text-align: left;">A fold-out optic with a half-dozen filter settings, none of them labeled in a language anyone recognizes anymore — <strong>or</strong> a jeweler's lens for reading fine detail, wear patterns, and things that don't quite match.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Adaptation</strong></td>
+<td style="text-align: left;">Multi-Spanner <strong>or</strong> Contortionist's Kit</td>
+<td style="text-align: left;">A collapsible toolkit built to reconfigure itself around whatever it's clamped onto — <strong>or</strong> a set of joint braces and grip aids for fitting a human body through spaces that weren't built for one.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Composure</strong></td>
+<td style="text-align: left;">Counting Chip <strong>or</strong> Breath-Timer Bead</td>
+<td style="text-align: left;">A worn metal disc, etched with a repeating pattern meant to be traced with a thumb — <strong>or</strong> a small bead worn at the collar that pulses on a slow, steady interval, there to be breathed along with.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Stealth</strong></td>
+<td style="text-align: left;">Muffle Wrap <strong>or</strong> Silent-Step Insoles</td>
+<td style="text-align: left;">A roll of dense, sound-dead cloth for binding boots, straps, or anything else that rattles — <strong>or</strong> a pair of insoles that swallow footfall on hard Station decking.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Combat</strong></td>
+<td style="text-align: left;">Honing Kit <strong>or</strong> Zero-Kit</td>
+<td style="text-align: left;">A compact maintenance rig for keeping an edge sharp or a barrel true — <strong>or</strong> a sighting tool for zeroing a new weapon fast, useful the moment a mob drop replaces something familiar.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Medicine</strong></td>
+<td style="text-align: left;">Trauma Kit <strong>or</strong> Suture Pen</td>
+<td style="text-align: left;">A flat case of sealants, clamps, and stabilizers, sized to fit in a pocket instead of a pack — <strong>or</strong> a self-dosing pen that closes a wound clean enough to worry about later.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Influence</strong></td>
+<td style="text-align: left;">Faction Chit <strong>or</strong> Introduction Chip</td>
+<td style="text-align: left;">A stamped credential chip from the character's sponsoring faction — half ID, half calling card — <strong>or</strong> a recorded reference from someone whose name still opens doors, faction notwithstanding.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="narrative-gear">Narrative Gear</h2>
+<p><em>No fixed mechanical effect. These exist to be used well by a player who's paying attention — the Custodian adjudicates outcomes case by case, the way the System Guide's own philosophy expects for skill-forward, non-combat problem solving. Occupies one Pocket slot (or the Back slot, at the Custodian's discretion — see How to Use above).</em></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Item</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Hull-Patch Kit</strong></td>
+<td style="text-align: left;">A sealant cartridge and applicator rated for emergency atmosphere breaches. The same kind of thing that got the party's ship here in one piece.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>10m Synth-Cable Coil</strong></td>
+<td style="text-align: left;">Thin, absurdly strong, faintly warm to the touch. Climbs, binds, tows, or rigs, depending on the knot.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Mag-Lock Grapple</strong></td>
+<td style="text-align: left;">A palm-sized launcher with a short magnetic anchor line. Not rated for anything the Station's scale would call far.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Signal Flare / Glow Rod</strong></td>
+<td style="text-align: left;">Chemical light, twelve-hour burn, visible from a long way down a dark corridor.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Field Data Slate</strong></td>
+<td style="text-align: left;">A battered handheld recorder-scanner. Takes notes, takes readings, takes pictures nobody back home will believe.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Ration Pack &amp; Reclaimer</strong></td>
+<td style="text-align: left;">Three days of food, and a tab that makes questionable water drinkable. Questionable, not guaranteed.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Adhesive Grip Pads</strong></td>
+<td style="text-align: left;">A pair of palm-and-knee pads with a tacky, reusable surface. Not rated for the Station's real vertical spaces, but better than fingernails.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Universal Key Shim</strong></td>
+<td style="text-align: left;">A worn set of manual override shims for human-made locks and latches — no use whatsoever on anything the Station built, and every use on anything the factions did.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Vacuum-Rated Poncho</strong></td>
+<td style="text-align: left;">A thin, foil-layered wrap meant for a few minutes of pressure loss, not a spacewalk. Standard-issue since the first hull breach drill, never once field-tested until it has to be.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Handheld Beacon</strong></td>
+<td style="text-align: left;">A palm-sized transponder with a stubborn battery. Broadcasts a fixed signal until someone finds it, whether or not that's who you wanted finding it.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>A Field Manual for a Ship That Isn't This One</strong> <em>(Joke)</em></td>
+<td style="text-align: left;">Water-stained, dog-eared, and for a completely different vessel class. No mechanical effect. Someone on the expedition swears it's brought them luck. It has not.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="---_5">---</h2>
+<p><em>Coyote Peridot - Players Handbook v0.2</em></p>
+<p><em>Compiles: Prologue v0.2 · Character Creation Guide v0.1 · Skills v0.2 · Professions v0.2 · Starting Equipment</em></p>
+<p><em>An elevendog media llc publication - Continuum11 Frame 2 Reality</em></p>
+<p><em>There is no beginning or end, only updates and reminders.</em></p>
+</body>
+</html>
